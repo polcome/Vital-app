@@ -324,6 +324,7 @@
     <!-- -- RUTINES MATÍ -- -->
     <div class="admin-section" id="admin-rutinesmati">
       <p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Primera versió: exercicis de mobilitat/estirament/hiit/abdominals per dia de la setmana. Encara no surten a la pàgina de Matí — ho connectarem després.</p>
+      <button class="submit" style="background:var(--surface-2);color:var(--text);border:1px solid var(--accent-dim);margin-bottom:16px;" onclick="seedRutinaMati()">⚡ Carregar rutina de calistènia (5 dies, 25 exercicis)</button>
       <div class="add-box" id="rutinaAddBox">
         <div class="add-box-title"><span class="label"><span class="plus">+</span><span id="rutinaFormTitle">Nou exercici</span></span>
           <span class="cancel-link" id="rutinaCancelLink" style="display:none;" onclick="cancelEditRutina()">Cancel·la</span></div>
@@ -1099,6 +1100,53 @@ function renderAdminRutinesList(){
       </div>`).join("");
     return `<div class="section-title">Dia: ${dia}</div>${rows}`;
   }).join("");
+}
+
+/* ============ ADMIN: SEMBRA RUTINA DE CALISTÈNIA (5 dies) ============ */
+const SEED_RUTINA_MATI = [
+  // Dilluns — Core bàsic + mobilitat
+  {dia:"L", nom:"Mobilitat de malucs i espatlles", tipus:"Mobilitat", durada:3, ordre:1},
+  {dia:"L", nom:"Plank frontal 3x20-30seg", tipus:"Abdominals", durada:3, ordre:2},
+  {dia:"L", nom:"Elevacions de cames (tombat) 3x12", tipus:"Abdominals", durada:3, ordre:3},
+  {dia:"L", nom:"Esquats suaus 2x15", tipus:"Altres", durada:3, ordre:4},
+  {dia:"L", nom:"Estirament final", tipus:"Estirament", durada:3, ordre:5},
+  // Dimarts — Cames i glutis
+  {dia:"M", nom:"Escalfament articular", tipus:"Mobilitat", durada:2, ordre:1},
+  {dia:"M", nom:"Sentadilles 3x15", tipus:"Altres", durada:4, ordre:2},
+  {dia:"M", nom:"Pont de glutis 3x15", tipus:"Altres", durada:3, ordre:3},
+  {dia:"M", nom:"Estocades alternes 2x10 per cama", tipus:"Altres", durada:4, ordre:4},
+  {dia:"M", nom:"Estirament de cames", tipus:"Estirament", durada:3, ordre:5},
+  // Dimecres — Core dinàmic
+  {dia:"X", nom:"Mobilitat de columna", tipus:"Mobilitat", durada:3, ordre:1},
+  {dia:"X", nom:"Mountain climbers 3x20seg", tipus:"HIIT", durada:3, ordre:2},
+  {dia:"X", nom:"Bicicleta abdominal 3x15", tipus:"Abdominals", durada:3, ordre:3},
+  {dia:"X", nom:"Plank lateral 2x20seg per costat", tipus:"Abdominals", durada:3, ordre:4},
+  {dia:"X", nom:"Estirament suau", tipus:"Estirament", durada:3, ordre:5},
+  // Dijous — Cames i equilibri
+  {dia:"J", nom:"Escalfament turmells i malucs", tipus:"Mobilitat", durada:2, ordre:1},
+  {dia:"J", nom:"Sentadilla a paret 3x30seg", tipus:"Altres", durada:3, ordre:2},
+  {dia:"J", nom:"Step-ups o gambades 2x12 per cama", tipus:"Altres", durada:4, ordre:3},
+  {dia:"J", nom:"Elevació de cames (abdominal baix) 3x12", tipus:"Abdominals", durada:3, ordre:4},
+  {dia:"J", nom:"Estirament quàdriceps i isquiotibials", tipus:"Estirament", durada:3, ordre:5},
+  // Divendres — Cos sencer suau (dia amb braços)
+  {dia:"V", nom:"Mobilitat general", tipus:"Mobilitat", durada:2, ordre:1},
+  {dia:"V", nom:"Flexions de genolls 2x10", tipus:"Altres", durada:3, ordre:2},
+  {dia:"V", nom:"Circuit sentadilles + abdominals (2 rondes)", tipus:"HIIT", durada:5, ordre:3},
+  {dia:"V", nom:"Plank frontal 2x30seg", tipus:"Abdominals", durada:2, ordre:4},
+  {dia:"V", nom:"Estirament final complet", tipus:"Estirament", durada:3, ordre:5},
+];
+async function seedRutinaMati(){
+  if(STATE.rutinesMati.length){
+    if(!confirm("Ja tens exercicis a Rutines matí. Vols afegir-hi aquesta rutina de 5 dies de totes maneres (no esborra els existents)?")) return;
+  } else {
+    if(!confirm("Es carregaran 25 exercicis (5 dies × 5 exercicis). Continuar?")) return;
+  }
+  showToast("Carregant rutina...");
+  for(const ex of SEED_RUTINA_MATI){
+    await apiPost("afegirRutinaMati", ex);
+  }
+  await loadAll();
+  showToast("Rutina de calistènia carregada!");
 }
 
 /* ============ STREAK ============ */
