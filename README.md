@@ -1,1 +1,1 @@
-# Vital---app
+# Vital-app
