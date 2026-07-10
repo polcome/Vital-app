@@ -91,6 +91,10 @@
   .cal-expanded{background:var(--surface-2);border:1px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:10px;animation:fade .2s ease;}
   .cal-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:8px;color:var(--accent);text-transform:capitalize;}
 
+  .health-choice{display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;}
+  .health-btn{border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--text);}
+  .health-btn.healthy:active{border-color:var(--accent);color:var(--accent);}
+  .health-btn.unhealthy:active{border-color:var(--alert);color:var(--alert);}
   .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:default;border-left:3px solid var(--accent-dim);}
@@ -249,17 +253,60 @@
       <button data-r="30">30 dies</button>
       <button data-r="90">90 dies</button>
       <button data-r="365">Any</button>
+      <button data-r="custom">Des de...</button>
     </div>
+    <div id="customDateWrap" style="display:none;margin:0 0 14px;">
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Calcular des de la data:</label>
+      <input type="date" id="statsCustomDate" class="mono" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 9px;font-size:13.5px;color-scheme:dark;">
+    </div>
+
+    <div class="section-title">Resum general</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="num" id="statCompliment">–</div><div class="lbl">% compliment global</div></div>
       <div class="stat-box"><div class="num" id="statStreak">–</div><div class="lbl">Ratxa actual (dies)</div></div>
     </div>
-    <div class="section-title">Compliment per dia</div>
     <div class="chart-wrap"><canvas id="chartCompliment"></canvas></div>
+
+    <div class="section-title" style="color:var(--amber);">Exercici matinal</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statMatinalFetes">–</div><div class="lbl">Rutines fetes</div></div>
+      <div class="stat-box"><div class="num" id="statMatinalPct">–</div><div class="lbl">% compliment</div></div>
+    </div>
+
+    <div class="section-title" style="color:var(--purple);">Àpats</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statApatsPct">–</div><div class="lbl">% compliment</div></div>
+      <div class="stat-box"><div class="num" id="statApatsSalut">–</div><div class="lbl">% saludables</div></div>
+    </div>
+    <div class="chart-wrap" style="height:190px;"><canvas id="chartApatsSalut"></canvas></div>
+
+    <div class="section-title" style="color:var(--blue);">Entrenaments</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statEntTotal">–</div><div class="lbl">Sessions totals</div></div>
+      <div class="stat-box"><div class="num" id="statEntPes">–</div><div class="lbl">Kg totals aixecats</div></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statCardioMin">–</div><div class="lbl">Temps de cardio</div></div>
+      <div class="stat-box"><div class="num" id="statCardioKm">–</div><div class="lbl">Km recorreguts</div></div>
+    </div>
+    <div class="section-title">Sessions per tipus</div>
+    <div class="chart-wrap"><canvas id="chartEntTipus"></canvas></div>
+    <div class="section-title">Volum per exercici (Gimnàs)</div>
+    <div class="chart-wrap"><canvas id="chartVolum"></canvas></div>
+    <div class="section-title">Minuts de cardio per tipus</div>
+    <div class="chart-wrap"><canvas id="chartCardioTipus"></canvas></div>
+
+    <div class="section-title" style="color:var(--accent);">Rutines / hàbits</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statRutinesFetes">–</div><div class="lbl">Complertes</div></div>
+      <div class="stat-box"><div class="num" id="statRutinesPct">–</div><div class="lbl">% compliment</div></div>
+    </div>
+
+    <div class="section-title">Compliment per dia de la setmana</div>
+    <div class="chart-wrap"><canvas id="chartSetmana"></canvas></div>
+
     <div class="section-title">Evolució física (pes)</div>
     <div class="chart-wrap"><canvas id="chartPes"></canvas></div>
-    <div class="section-title">Volum d'entreno per exercici</div>
-    <div class="chart-wrap"><canvas id="chartVolum"></canvas></div>
   </section>
 
   <!-- ===== PÀGINA: ADMIN ===== -->
@@ -568,6 +615,8 @@ const CATEGORIA_COLOR_DIM = {
   "Rutines": "var(--accent-dim)"
 };
 
+let pendingHealthChoice = null; // {dStr, id}
+
 function renderExpandedPanel(dStr){
   const d = new Date(dStr+"T00:00:00");
   const tasques = tasquesActivesDia(d);
@@ -586,16 +635,31 @@ function renderExpandedPanel(dStr){
         const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
         const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
         const nota = rr ? (rr.Nota||"") : "";
+        const saludable = rr ? rr.Saludable : "";
         const pag = CATEGORIA_PAGINA[cat];
+        const isPending = pendingHealthChoice && pendingHealthChoice.dStr===dStr && String(pendingHealthChoice.id)===String(t.ID);
+        const nomEsc = t.Nom.replace(/'/g,"\\'");
+
+        const checkBlock = isPending
+          ? `<div class="body">
+              <div class="name">${t.Nom}</div>
+              <div class="health-choice">
+                <button class="health-btn healthy" onclick="chooseHealth('${dStr}','${t.ID}','${cat}','${nomEsc}',true)">✅ Saludable</button>
+                <button class="health-btn unhealthy" onclick="chooseHealth('${dStr}','${t.ID}','${cat}','${nomEsc}',false)">❌ No saludable</button>
+                <span class="cancel-link" onclick="cancelHealthChoice()">Cancel·la</span>
+              </div>
+            </div>`
+          : `<div class="check ${fet?'done':''}" onclick="checkClick('${dStr}','${t.ID}','${cat}','${nomEsc}',${fet})">${fet?'✓':''}</div>
+            <div class="body">
+              <div class="name ${fet?'done':''}">${t.Nom}${fet && cat==="Àpats" && saludable!==""?(String(saludable).toUpperCase()==="TRUE"?' <span style="color:var(--accent);">●</span>':' <span style="color:var(--alert);">●</span>'):''}</div>
+              <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
+                onchange="guardarNota('${dStr}','${t.ID}','${cat}','${nomEsc}', this.value)">
+            </div>`;
+
         return `
         <div class="task-row" data-id="${t.ID}" style="border-left:3px solid ${colorDim};">
-          <div class="check ${fet?'done':''}" onclick="toggleTasca('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
-          <div class="body">
-            <div class="name ${fet?'done':''}">${t.Nom}</div>
-            <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
-              onchange="guardarNota('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
-          </div>
-          ${pag?`<div class="detail-btn" title="Veure detall" onclick="goToCategoryPage('${cat}','${dStr}')">›</div>`:''}
+          ${checkBlock}
+          ${pag && !isPending?`<div class="detail-btn" title="Veure detall" onclick="goToCategoryPage('${cat}','${dStr}')">›</div>`:''}
         </div>`;
       }).join("");
       return `<div class="section-title" style="color:${color};">${cat}</div>${rows}`;
@@ -620,6 +684,27 @@ function goToCategoryPage(categoria, dStr){
   else if(target==="entrenaments"){ entrenamentsCalMonth = new Date(dStr+"T00:00:00"); entrenamentsCalMonth.setDate(1); entrenamentsExpandedDate = dStr; renderEntrenamentsCalendar(); }
 }
 
+/** Clic al check: per Àpats, si es marca com a fet (encara no ho estava), demana saludable/no saludable abans de desar. */
+function checkClick(dStr, id, categoria, nom, isDone){
+  if(categoria==="Àpats" && !isDone){
+    pendingHealthChoice = {dStr, id};
+    renderCalendar();
+    return;
+  }
+  toggleTasca(dStr, id, categoria, nom);
+}
+function cancelHealthChoice(){ pendingHealthChoice = null; renderCalendar(); }
+async function chooseHealth(dStr, id, categoria, nom, saludable){
+  pendingHealthChoice = null;
+  const reg = registreDia(dStr);
+  let existent = reg.find(r=>String(r.ID_Tasca)===String(id));
+  if(existent){ existent.Fet = true; existent.Saludable = saludable; }
+  else { STATE.registre.push({Data:dStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:true, Nota:"", Saludable:saludable}); existent = STATE.registre[STATE.registre.length-1]; }
+  renderCalendar(); computeStreak(); renderApatsCalendar();
+  await apiPost("marcarTasca", {data:dStr, idTasca:id, categoria, nom, fet:true, nota:existent.Nota||"", saludable});
+  showToast(saludable ? "Marcat com a saludable ✅" : "Marcat com a no saludable");
+}
+
 async function toggleTasca(dataStr, id, categoria, nom){
   const reg = registreDia(dataStr);
   const existent = reg.find(r=>String(r.ID_Tasca)===String(id));
@@ -628,6 +713,7 @@ async function toggleTasca(dataStr, id, categoria, nom){
   if(existent){ existent.Fet = nouEstat; }
   else { STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:nouEstat, Nota:""}); }
   renderCalendar(); computeStreak();
+  if(categoria==="Àpats") renderApatsCalendar();
   await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet:nouEstat, nota});
 }
 async function guardarNota(dataStr, id, categoria, nom, valor){
@@ -727,6 +813,15 @@ function renderApatsDayPanel(dStr){
   const items = STATE.apats.filter(a=>a.Data===dStr);
   const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
   const editingItem = apatEditingId ? items.find(a=>String(a.ID)===String(apatEditingId)) : null;
+
+  const regDia = STATE.registre.filter(r=>r.Data===dStr && r.Categoria==="Àpats" && String(r.Fet).toUpperCase()==="TRUE");
+  const checklistHtml = regDia.length ? `<div class="log-subtitle">Compliment del dia (des del calendari)</div>
+    <div class="card">${regDia.map(r=>{
+      const sal = r.Saludable;
+      const badge = sal===""||sal===undefined ? "" : (String(sal).toUpperCase()==="TRUE" ? ` <span style="color:var(--accent);">● Saludable</span>` : ` <span style="color:var(--alert);">● No saludable</span>`);
+      return `<div class="row"><span class="k">✓ ${r.Nom}</span><span class="v" style="font-size:11px;">${badge}</span></div>`;
+    }).join("")}</div>` : "";
+
   const inner = items.length
     ? `<div class="log-subtitle">Registrat (${items.length})</div>` + items.map(a=>`<div class="card">
         <div class="card-head">
@@ -743,6 +838,7 @@ function renderApatsDayPanel(dStr){
   const isEdit = !!editingItem;
   return `<div class="cal-expanded">
     <div class="cal-expanded-title">${labelRaw}</div>
+    ${checklistHtml}
     ${inner}
     <div class="add-box ${isEdit?'editing':''}">
       <div class="add-box-title">
@@ -842,7 +938,8 @@ function renderEntrenamentsDayPanel(dStr){
           </div>`:''}
         </div>
         ${cardioClass
-          ? `<div class="row"><span class="k">Durada</span><span class="v">${fmtDuracio(e.Minuts)}</span></div>`
+          ? `<div class="row"><span class="k">Durada</span><span class="v">${fmtDuracio(e.Minuts)}</span></div>
+             ${e.Kms?`<div class="row"><span class="k">Distància</span><span class="v">${e.Kms} km</span></div>`:""}`
           : `<div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
              <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>`}
         ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
@@ -887,8 +984,10 @@ function renderEntrenamentsDayPanel(dStr){
         <div id="entCardioFields_${dStr}" style="display:${showCardio?'block':'none'};">
           <label>Tipus de cardio</label>
           <select id="entSubtipus_${dStr}">${selOpts(['Futbol','Running','Caminar','Altres'], editingItem?editingItem.Subtipus:'Futbol')}</select>
-          <label>Temps (minuts)</label>
-          <input id="entMinuts_${dStr}" type="number" placeholder="60" value="${editingItem&&showCardio?editingItem.Minuts||'':''}">
+          <div class="grid">
+            <div><label>Temps (minuts)</label><input id="entMinuts_${dStr}" type="number" placeholder="60" value="${editingItem&&showCardio?editingItem.Minuts||'':''}"></div>
+            <div><label>Km (opcional)</label><input id="entKms_${dStr}" type="number" step="0.1" placeholder="5" value="${editingItem&&showCardio?editingItem.Kms||'':''}"></div>
+          </div>
         </div>
 
         <label>Nota (opcional)</label>
@@ -913,12 +1012,13 @@ async function guardarEntrenoDia(dStr){
     body.series = document.getElementById(`entSeries_${dStr}`).value;
     body.reps = document.getElementById(`entReps_${dStr}`).value;
     if(!body.exercici){ showToast("Escriu l'exercici"); return; }
-    novaEntrada = {Data:body.data, Tipus:"Gimnàs", Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Subtipus:"", Minuts:"", Nota:body.nota};
+    novaEntrada = {Data:body.data, Tipus:"Gimnàs", Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Subtipus:"", Minuts:"", Kms:"", Nota:body.nota};
   } else {
     body.subtipus = document.getElementById(`entSubtipus_${dStr}`).value;
     body.minuts = document.getElementById(`entMinuts_${dStr}`).value;
+    body.kms = document.getElementById(`entKms_${dStr}`).value;
     if(!body.minuts){ showToast("Indica els minuts"); return; }
-    novaEntrada = {Data:body.data, Tipus:"Cardio", Exercici:"", Series:"", Reps:"", Pes_kg:"", Subtipus:body.subtipus, Minuts:body.minuts, Nota:body.nota};
+    novaEntrada = {Data:body.data, Tipus:"Cardio", Exercici:"", Series:"", Reps:"", Pes_kg:"", Subtipus:body.subtipus, Minuts:body.minuts, Kms:body.kms, Nota:body.nota};
   }
 
   if(entrenamentsEditingId){
@@ -1211,14 +1311,36 @@ document.getElementById("rangeBar").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
   document.querySelectorAll("#rangeBar button").forEach(b=>b.classList.remove("active"));
   e.target.classList.add("active");
-  currentRange = Number(e.target.dataset.r);
+  currentRange = e.target.dataset.r === "custom" ? "custom" : Number(e.target.dataset.r);
+  document.getElementById("customDateWrap").style.display = currentRange==="custom" ? "block" : "none";
+  if(currentRange==="custom" && !document.getElementById("statsCustomDate").value){
+    const d = new Date(); d.setDate(d.getDate()-7);
+    document.getElementById("statsCustomDate").value = fmt(d);
+  }
   renderStats();
 });
+document.getElementById("statsCustomDate").addEventListener("change", renderStats);
 
-function renderStats(){
+function getDiesRange(){
+  if(currentRange==="custom"){
+    const v = document.getElementById("statsCustomDate").value;
+    const start = v ? new Date(v+"T00:00:00") : (()=>{ const d=new Date(); d.setDate(d.getDate()-7); return d; })();
+    const today = new Date();
+    const dies = [];
+    let d = new Date(start);
+    while(fmt(d) <= fmt(today)){ dies.push(new Date(d)); d.setDate(d.getDate()+1); }
+    return dies.length ? dies : [new Date()];
+  }
   const dies = [];
   for(let i=currentRange-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); dies.push(d); }
+  return dies;
+}
 
+function renderStats(){
+  const dies = getDiesRange();
+  const desde = fmt(dies[0]);
+
+  /* ---- Resum general ---- */
   let totalTasques=0, totalFetes=0;
   const complimentPerDia = dies.map(d=>{
     const dStr = fmt(d);
@@ -1230,33 +1352,122 @@ function renderStats(){
   });
   document.getElementById("statCompliment").textContent = totalTasques ? Math.round((totalFetes/totalTasques)*100)+"%" : "–";
   document.getElementById("statStreak").textContent = document.getElementById("streakNum").textContent;
-
   drawChart("chartCompliment","line", dies.map(d=>d.toLocaleDateString('ca-ES',{day:'numeric',month:'numeric'})),
     [{label:"% compliment", data:complimentPerDia, borderColor:"#8fb996", backgroundColor:"rgba(143,185,150,.15)", fill:true, tension:.3}]);
 
-  const mesuresRang = STATE.mesures.filter(m=>m.Data>=fmt(dies[0])).sort((a,b)=>a.Data.localeCompare(b.Data));
-  drawChart("chartPes","line", mesuresRang.map(m=>m.Data.slice(5)),
-    [{label:"Pes (kg)", data:mesuresRang.map(m=>Number(m.Pes_kg)), borderColor:"#e8a652", backgroundColor:"rgba(232,166,82,.15)", fill:true, tension:.3}]);
+  /* ---- Exercici matinal ---- */
+  let matFetes=0, matTotal=0;
+  dies.forEach(d=>{
+    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Exercici matinal");
+    if(!tasques.length) return;
+    matTotal++;
+    const reg = registreDia(fmt(d));
+    if(tasques.every(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE"))) matFetes++;
+  });
+  document.getElementById("statMatinalFetes").textContent = matFetes;
+  document.getElementById("statMatinalPct").textContent = matTotal ? Math.round((matFetes/matTotal)*100)+"%" : "–";
 
-  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=fmt(dies[0]) && (e.Tipus||"Gimnàs")==="Gimnàs");
+  /* ---- Àpats ---- */
+  let apatsTotalItems=0, apatsFetesItems=0, apatsSalut=0, apatsNoSalut=0;
+  dies.forEach(d=>{
+    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Àpats");
+    const reg = registreDia(fmt(d));
+    tasques.forEach(t=>{
+      apatsTotalItems++;
+      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
+      if(rr && String(rr.Fet).toUpperCase()==="TRUE"){
+        apatsFetesItems++;
+        if(rr.Saludable!==undefined && rr.Saludable!==""){
+          if(String(rr.Saludable).toUpperCase()==="TRUE") apatsSalut++; else apatsNoSalut++;
+        }
+      }
+    });
+  });
+  document.getElementById("statApatsPct").textContent = apatsTotalItems ? Math.round((apatsFetesItems/apatsTotalItems)*100)+"%" : "–";
+  const apatsAmbSalut = apatsSalut + apatsNoSalut;
+  document.getElementById("statApatsSalut").textContent = apatsAmbSalut ? Math.round((apatsSalut/apatsAmbSalut)*100)+"%" : "–";
+  drawChart("chartApatsSalut","doughnut", ["Saludables","No saludables"],
+    [{data:[apatsSalut,apatsNoSalut], backgroundColor:["#8fb996","#b15e52"], borderWidth:0}]);
+
+  /* ---- Entrenaments ---- */
+  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=desde);
+  const gimnasEnt = entrenosRang.filter(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
+  const cardioEnt = entrenosRang.filter(e=>e.Tipus==="Cardio");
+  document.getElementById("statEntTotal").textContent = entrenosRang.length;
+
+  let pesTotal=0;
+  gimnasEnt.forEach(e=>{ pesTotal += (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0); });
+  document.getElementById("statEntPes").textContent = pesTotal ? Math.round(pesTotal).toLocaleString('ca-ES')+" kg" : "–";
+
+  let cardioMinTotal=0, cardioKmTotal=0;
+  cardioEnt.forEach(e=>{ cardioMinTotal += Number(e.Minuts)||0; cardioKmTotal += Number(e.Kms)||0; });
+  document.getElementById("statCardioMin").textContent = cardioMinTotal ? fmtDuracio(cardioMinTotal) : "–";
+  document.getElementById("statCardioKm").textContent = cardioKmTotal ? cardioKmTotal.toFixed(1)+" km" : "–";
+
+  const tipusCount = {};
+  if(gimnasEnt.length) tipusCount["Gimnàs"] = gimnasEnt.length;
+  cardioEnt.forEach(e=>{ const k = e.Subtipus || "Altres"; tipusCount[k] = (tipusCount[k]||0)+1; });
+  const tipusLabels = Object.keys(tipusCount);
+  drawChart("chartEntTipus","bar", tipusLabels,
+    [{label:"Sessions", data:tipusLabels.map(k=>tipusCount[k]), backgroundColor:tipusLabels.map(k=>k==="Gimnàs"?"#8fb996":"#6fa8e0")}]);
+
   const volumPerExercici = {};
-  entrenosRang.forEach(e=>{
+  gimnasEnt.forEach(e=>{
     const vol = (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0);
     volumPerExercici[e.Exercici] = (volumPerExercici[e.Exercici]||0) + vol;
   });
   const labelsV = Object.keys(volumPerExercici);
   drawChart("chartVolum","bar", labelsV, [{label:"Volum (kg)", data:labelsV.map(k=>volumPerExercici[k]), backgroundColor:"#8fb996"}]);
+
+  const minutsPerTipus = {};
+  cardioEnt.forEach(e=>{ const k = e.Subtipus || "Altres"; minutsPerTipus[k] = (minutsPerTipus[k]||0) + (Number(e.Minuts)||0); });
+  const labelsC = Object.keys(minutsPerTipus);
+  drawChart("chartCardioTipus","bar", labelsC, [{label:"Minuts", data:labelsC.map(k=>minutsPerTipus[k]), backgroundColor:"#6fa8e0"}]);
+
+  /* ---- Rutines ---- */
+  let rutFetes=0, rutTotal=0;
+  dies.forEach(d=>{
+    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Rutines");
+    const reg = registreDia(fmt(d));
+    tasques.forEach(t=>{
+      rutTotal++;
+      if(reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")) rutFetes++;
+    });
+  });
+  document.getElementById("statRutinesFetes").textContent = rutFetes;
+  document.getElementById("statRutinesPct").textContent = rutTotal ? Math.round((rutFetes/rutTotal)*100)+"%" : "–";
+
+  /* ---- Compliment per dia de la setmana ---- */
+  const diesSetmanaLbl = ["Dl","Dt","Dc","Dj","Dv","Ds","Dg"];
+  const codisOrdre = ["L","M","X","J","V","S","D"];
+  const perDiaTotals = {}, perDiaFetes = {};
+  codisOrdre.forEach(c=>{ perDiaTotals[c]=0; perDiaFetes[c]=0; });
+  dies.forEach(d=>{
+    const codi = diaCodi(d);
+    const tasques = tasquesActivesDia(d);
+    const reg = registreDia(fmt(d));
+    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+    perDiaTotals[codi] += tasques.length; perDiaFetes[codi] += fetes;
+  });
+  const pctPerDia = codisOrdre.map(c=> perDiaTotals[c] ? Math.round((perDiaFetes[c]/perDiaTotals[c])*100) : 0);
+  drawChart("chartSetmana","bar", diesSetmanaLbl, [{label:"% compliment", data:pctPerDia, backgroundColor:"#e8a652"}]);
+
+  /* ---- Físic (pes) ---- */
+  const mesuresRang = STATE.mesures.filter(m=>m.Data>=desde).sort((a,b)=>a.Data.localeCompare(b.Data));
+  drawChart("chartPes","line", mesuresRang.map(m=>m.Data.slice(5)),
+    [{label:"Pes (kg)", data:mesuresRang.map(m=>Number(m.Pes_kg)), borderColor:"#e8a652", backgroundColor:"rgba(232,166,82,.15)", fill:true, tension:.3}]);
 }
 
 function drawChart(canvasId, type, labels, datasets){
   const ctx = document.getElementById(canvasId).getContext("2d");
   if(charts[canvasId]) charts[canvasId].destroy();
+  const noScales = (type==="doughnut" || type==="pie");
   charts[canvasId] = new Chart(ctx, {
     type, data:{labels, datasets},
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
+      plugins:{legend:{display:noScales, position:"bottom", labels:{color:"#8f979d", font:{size:11}}}},
+      scales: noScales ? {} : {
         x:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}},
         y:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}}
       }
