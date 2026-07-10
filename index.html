@@ -505,7 +505,7 @@ function tasquesActivesDia(d){
   const dStr = fmt(d);
   const items = STATE.tasques.filter(t=>{
     if(String(t.Actiu).toUpperCase()!=="TRUE") return false;
-    if(t.Categoria==="Exercici matinal") return false; // gestionat com a tasca única via la rutina de calistènia
+    if(t.Categoria==="Exercici matinal") return false; // gestionat com a tasca única "Rutina diària"
     if(t.Data){ return t.Data === dStr; } // tasca puntual: només aquell dia, ignora Dies
     if(!t.Dies || t.Dies==="Diari") return true;
     return t.Dies.split(",").map(s=>s.trim()).includes(codi);
@@ -513,7 +513,7 @@ function tasquesActivesDia(d){
 
   const rutinaAvui = STATE.rutinesMati.filter(r=> String(r.Actiu).toUpperCase()!=="FALSE" && (r.Dia==="Diari" || r.Dia===codi));
   if(rutinaAvui.length){
-    items.unshift({ID:"rutina_mati", Categoria:"Exercici matinal", Nom:"Rutina de calistènia", Dies:"Diari", Actiu:true, Ordre:0});
+    items.unshift({ID:"rutina_mati", Categoria:"Exercici matinal", Nom:"Rutina diària", Dies:"Diari", Actiu:true, Ordre:0});
   }
   return items;
 }
