@@ -14,6 +14,7 @@
     --accent:#8fb996; --accent-dim:#4f6b56;
     --amber:#e8a652; --amber-dim:#7a5b30;
     --blue:#6fa8e0; --blue-dim:#3d5a7a;
+    --purple:#b98bd6; --purple-dim:#5c4770;
     --alert:#b15e52;
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --radius:10px;
@@ -353,7 +354,7 @@
 
 <nav class="tabs">
   <button class="tab-btn active" data-page="avui"><span class="ic">📅</span>Avui</button>
-  <button class="tab-btn" data-page="matinal"><span class="ic">🌅</span>Matí</button>
+  <button class="tab-btn" data-page="matinal"><span class="ic">🌅</span>Matinal</button>
   <button class="tab-btn" data-page="apats"><span class="ic">🍽️</span>Àpats</button>
   <button class="tab-btn" data-page="entrenaments"><span class="ic">🏋️</span>Entrenaments</button>
   <button class="tab-btn" data-page="rutines"><span class="ic">✅</span>Rutines</button>
@@ -554,6 +555,18 @@ const CATEGORIA_PAGINA = {
   "Àpats": "apats",
   "Entrenament": "entrenaments"
 };
+const CATEGORIA_COLOR = {
+  "Exercici matinal": "var(--amber)",
+  "Àpats": "var(--purple)",
+  "Entrenament": "var(--blue)",
+  "Rutines": "var(--accent)"
+};
+const CATEGORIA_COLOR_DIM = {
+  "Exercici matinal": "var(--amber-dim)",
+  "Àpats": "var(--purple-dim)",
+  "Entrenament": "var(--blue-dim)",
+  "Rutines": "var(--accent-dim)"
+};
 
 function renderExpandedPanel(dStr){
   const d = new Date(dStr+"T00:00:00");
@@ -567,13 +580,15 @@ function renderExpandedPanel(dStr){
     inner = `<div class="empty">Cap tasca planificada per aquest dia.</div>`;
   } else {
     inner = cats.map(cat=>{
+      const color = CATEGORIA_COLOR[cat] || "var(--accent)";
+      const colorDim = CATEGORIA_COLOR_DIM[cat] || "var(--accent-dim)";
       const rows = tasques.filter(t=>t.Categoria===cat).map(t=>{
         const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
         const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
         const nota = rr ? (rr.Nota||"") : "";
         const pag = CATEGORIA_PAGINA[cat];
         return `
-        <div class="task-row" data-id="${t.ID}">
+        <div class="task-row" data-id="${t.ID}" style="border-left:3px solid ${colorDim};">
           <div class="check ${fet?'done':''}" onclick="toggleTasca('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
           <div class="body">
             <div class="name ${fet?'done':''}">${t.Nom}</div>
@@ -583,7 +598,7 @@ function renderExpandedPanel(dStr){
           ${pag?`<div class="detail-btn" title="Veure detall" onclick="goToCategoryPage('${cat}','${dStr}')">›</div>`:''}
         </div>`;
       }).join("");
-      return `<div class="section-title">${cat}</div>${rows}`;
+      return `<div class="section-title" style="color:${color};">${cat}</div>${rows}`;
     }).join("");
   }
   return `<div class="cal-expanded">
@@ -635,34 +650,6 @@ function changeFocusDay(pagina, delta){
   else { rutinesDate.setDate(rutinesDate.getDate()+delta); renderRutinesDetail(); }
 }
 
-function renderDetailDia(categoria, data, dateLabelId, pctId, contentId){
-  const dStr = fmt(data);
-  const isToday = dStr===fmt(new Date());
-  document.getElementById(dateLabelId).textContent =
-    (isToday?"Avui · ":"") + data.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  const tasques = tasksByCategoria(categoria, dStr);
-  const reg = registreDia(dStr);
-  const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-  document.getElementById(pctId).textContent = tasques.length ? Math.round((fetes/tasques.length)*100)+"%" : "–";
-
-  const cont = document.getElementById(contentId);
-  if(tasques.length===0){ cont.innerHTML = `<div class="empty">Cap tasca planificada per aquest dia.</div>`; return; }
-  cont.innerHTML = tasques.map(t=>{
-    const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-    const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-    const nota = rr ? (rr.Nota||"") : "";
-    return `
-    <div class="task-row" data-id="${t.ID}">
-      <div class="check ${fet?'done':''}" onclick="toggleTascaDetail('${categoria}','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
-      <div class="body">
-        <div class="name ${fet?'done':''}">${t.Nom}</div>
-        <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
-          onchange="guardarNotaDetail('${categoria}','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
-      </div>
-    </div>`;
-  }).join("");
-}
 function renderMatinalDetail(){
   const dStr = fmt(matinalDate);
   const isToday = dStr===fmt(new Date());
@@ -683,22 +670,38 @@ function renderMatinalDetail(){
 
   const cont = document.getElementById("matinalContent");
   if(!rutinaExercicis.length){ cont.innerHTML = `<div class="empty">Cap exercici planificat per aquest dia.</div>`; return; }
-  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick de "Rutina de calistènia" des del calendari d'Avui.</p>` +
+  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick des del calendari d'Avui.</p>` +
     rutinaExercicis.map(r=>`<div class="card">
       <div class="row"><span class="k">${r.Nom}</span></div>
       <div class="row"><span class="k">Tipus</span><span class="v">${r.Tipus||"–"}</span></div>
       ${r.Durada_min?`<div class="row"><span class="k">Durada</span><span class="v">~${r.Durada_min} min</span></div>`:""}
     </div>`).join("");
 }
-function renderRutinesDetail(){ renderDetailDia("Rutines", rutinesDate, "rutinesDateLabel", "rutinesPct", "rutinesContent"); }
 
-async function toggleTascaDetail(categoria, dStr, id, nom){
-  await toggleTasca(dStr, id, categoria, nom);
-  renderMatinalDetail(); renderRutinesDetail();
-}
-async function guardarNotaDetail(categoria, dStr, id, nom, valor){
-  await guardarNota(dStr, id, categoria, nom, valor);
-  renderMatinalDetail(); renderRutinesDetail();
+function renderRutinesDetail(){
+  const dStr = fmt(rutinesDate);
+  const isToday = dStr===fmt(new Date());
+  document.getElementById("rutinesDateLabel").textContent =
+    (isToday?"Avui · ":"") + rutinesDate.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  const tasques = tasksByCategoria("Rutines", dStr);
+  const reg = registreDia(dStr);
+  const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+  document.getElementById("rutinesPct").textContent = tasques.length ? Math.round((fetes/tasques.length)*100)+"%" : "–";
+
+  const cont = document.getElementById("rutinesContent");
+  if(!tasques.length){ cont.innerHTML = `<div class="empty">Cap rutina planificada per aquest dia.</div>`; return; }
+  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick des del calendari d'Avui.</p>` +
+    tasques.map(t=>{
+      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
+      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
+      return `<div class="card">
+        <div class="row">
+          <span class="k">${fet?'✓ ':''}${t.Nom}</span>
+          <span class="v" style="color:${fet?'var(--accent)':'var(--text-muted)'}">${fet?'Fet':'Pendent'}</span>
+        </div>
+      </div>`;
+    }).join("");
 }
 
 /* ============ ÀPATS ============ */
