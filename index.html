@@ -336,8 +336,10 @@
           </select>
           <label>Nom</label>
           <input id="tascaNom" placeholder="Nom de la tasca">
-          <label>Dies (Diari, o L,X,V)</label>
+          <label>Dies (Diari, o L,X,V) — s'ignora si poses una data puntual</label>
           <input id="tascaDies" placeholder="Diari" value="Diari">
+          <label>Data puntual (opcional — només per a un dia concret, no recurrent)</label>
+          <input id="tascaData" type="date">
           <label>Ordre</label>
           <input id="tascaOrdre" type="number" placeholder="1">
           <button class="submit" id="tascaSubmitBtn" onclick="guardarTasca()">Afegir tasca</button>
@@ -455,9 +457,11 @@ function fmt(d){ // -> YYYY-MM-DD
 function diaCodi(d){ return DIES_CODI[d.getDay()]; }
 function tasquesActivesDia(d){
   const codi = diaCodi(d);
+  const dStr = fmt(d);
   const items = STATE.tasques.filter(t=>{
     if(String(t.Actiu).toUpperCase()!=="TRUE") return false;
     if(t.Categoria==="Exercici matinal") return false; // gestionat com a tasca única via la rutina de calistènia
+    if(t.Data){ return t.Data === dStr; } // tasca puntual: només aquell dia, ignora Dies
     if(!t.Dies || t.Dies==="Diari") return true;
     return t.Dies.split(",").map(s=>s.trim()).includes(codi);
   }).sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
@@ -1056,7 +1060,8 @@ let tascaEditingId = null;
 function omplirFormTasca(t){
   document.getElementById("tascaCategoria").value = t ? t.Categoria : "";
   document.getElementById("tascaNom").value = t ? t.Nom : "";
-  document.getElementById("tascaDies").value = t ? t.Dies : "Diari";
+  document.getElementById("tascaDies").value = t ? (t.Dies || "Diari") : "Diari";
+  document.getElementById("tascaData").value = t && t.Data ? t.Data : "";
   document.getElementById("tascaOrdre").value = t ? t.Ordre : "";
 }
 function startEditTasca(id){
@@ -1082,22 +1087,23 @@ async function guardarTasca(){
   const categoria = document.getElementById("tascaCategoria").value.trim();
   const nom = document.getElementById("tascaNom").value.trim();
   const dies = document.getElementById("tascaDies").value.trim() || "Diari";
+  const data = document.getElementById("tascaData").value || "";
   const ordre = document.getElementById("tascaOrdre").value || 99;
   if(!categoria || !nom){ showToast("Omple categoria i nom"); return; }
 
   if(tascaEditingId){
     const idx = STATE.tasques.findIndex(x=>String(x.ID)===String(tascaEditingId));
-    if(idx>-1) STATE.tasques[idx] = {...STATE.tasques[idx], Categoria:categoria, Nom:nom, Dies:dies, Ordre:ordre};
+    if(idx>-1) STATE.tasques[idx] = {...STATE.tasques[idx], Categoria:categoria, Nom:nom, Dies:dies, Data:data, Ordre:ordre};
     renderCalendar(); renderMatinalDetail(); renderRutinesDetail(); renderAdminTasquesList();
-    await apiPost("editarTasca", {id:tascaEditingId, categoria, nom, dies, actiu:true, ordre});
+    await apiPost("editarTasca", {id:tascaEditingId, categoria, nom, dies, data, actiu:true, ordre});
     showToast("Tasca actualitzada");
     cancelEditTasca();
   } else {
-    STATE.tasques.push({ID:"tmp_"+Date.now(), Categoria:categoria, Nom:nom, Dies:dies, Actiu:true, Ordre:ordre});
+    STATE.tasques.push({ID:"tmp_"+Date.now(), Categoria:categoria, Nom:nom, Dies:dies, Data:data, Actiu:true, Ordre:ordre});
     renderAdminTasquesList();
-    const r = await apiPost("afegirTasca", {categoria, nom, dies, ordre});
+    const r = await apiPost("afegirTasca", {categoria, nom, dies, data, ordre});
     await loadAll();
-    showToast("Tasca afegida");
+    showToast(data ? "Tasca puntual afegida" : "Tasca afegida");
     omplirFormTasca(null);
   }
 }
@@ -1118,13 +1124,13 @@ function renderAdminTasquesList(){
     const rows = porCategoria[cat].map(t=>`
       <div class="card">
         <div class="card-head">
-          <span style="font-size:14px;">${t.Nom}</span>
+          <span style="font-size:14px;">${t.Nom}${t.Data?` <span style="color:var(--amber);font-size:11px;">· puntual</span>`:''}</span>
           <div class="icon-row">
             <div class="icon-btn" onclick="startEditTasca('${t.ID}')">✎</div>
             <div class="icon-btn danger" onclick="eliminarTascaClick('${t.ID}')">🗑</div>
           </div>
         </div>
-        <div class="row"><span class="k">Dies</span><span class="v">${t.Dies}</span></div>
+        <div class="row"><span class="k">${t.Data?"Data":"Dies"}</span><span class="v">${t.Data || t.Dies}</span></div>
         <div class="row"><span class="k">Activa</span><span class="v">${String(t.Actiu).toUpperCase()==="TRUE"?"Sí":"No"}</span></div>
       </div>`).join("");
     return `<div class="section-title">${cat}</div>${rows}`;
