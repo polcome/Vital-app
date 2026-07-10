@@ -165,16 +165,7 @@
   <!-- ===== PÀGINA: ÀPATS ===== -->
   <section class="page" id="page-apats">
     <h2 style="font-size:18px;margin:14px 0 4px;">Àpats / Dieta</h2>
-    <div class="form">
-      <label>Àpat</label>
-      <select id="apatTipus"><option>Esmorzar</option><option>Dinar</option><option>Sopar</option><option>Snack</option></select>
-      <label>Descripció</label>
-      <input id="apatDesc" placeholder="Què has menjat...">
-      <label>Nota (opcional)</label>
-      <input id="apatNota" placeholder="Sensacions, quantitat...">
-      <button class="submit" onclick="afegirApat()">Afegir àpat d'avui</button>
-    </div>
-    <div class="section-title">Registre</div>
+    <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px;">Clica qualsevol dia per veure'l o afegir-hi un àpat (passat, avui o futur)</p>
     <div class="cal-header">
       <button class="nav-btn" onclick="changeApatsMonth(-1)">‹</button>
       <div class="cal-title" id="apatsCalTitle"></div>
@@ -187,18 +178,7 @@
   <!-- ===== PÀGINA: GIMNÀS ===== -->
   <section class="page" id="page-gimnas">
     <h2 style="font-size:18px;margin:14px 0 4px;">Gimnàs / Entreno</h2>
-    <div class="form">
-      <div class="grid">
-        <div><label>Exercici</label><input id="entExercici" placeholder="Press banca"></div>
-        <div><label>Pes (kg)</label><input id="entPes" type="number" step="0.5"></div>
-        <div><label>Sèries</label><input id="entSeries" type="number"></div>
-        <div><label>Reps</label><input id="entReps" type="number"></div>
-      </div>
-      <label>Nota (opcional)</label>
-      <input id="entNota" placeholder="RPE, sensacions...">
-      <button class="submit" onclick="afegirEntreno()">Afegir sèrie d'avui</button>
-    </div>
-    <div class="section-title">Registre</div>
+    <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px;">Clica qualsevol dia per veure'l o afegir-hi un entreno (passat, avui o futur)</p>
     <div class="cal-header">
       <button class="nav-btn" onclick="changeGimnasMonth(-1)">‹</button>
       <div class="cal-title" id="gimnasCalTitle"></div>
@@ -540,23 +520,8 @@ async function guardarNotaDetail(categoria, dStr, id, nom, valor){
 
 /* ============ ÀPATS ============ */
 let apatsCalMonth = new Date(); apatsCalMonth.setDate(1);
-let apatsExpandedDate = null;
+let apatsExpandedDate = fmt(new Date());
 
-async function afegirApat(){
-  const body = {
-    data: fmt(new Date()),
-    apat: document.getElementById("apatTipus").value,
-    descripcio: document.getElementById("apatDesc").value,
-    nota: document.getElementById("apatNota").value
-  };
-  if(!body.descripcio){ showToast("Escriu una descripció"); return; }
-  STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota});
-  document.getElementById("apatDesc").value=""; document.getElementById("apatNota").value="";
-  apatsExpandedDate = body.data;
-  renderApatsCalendar();
-  await apiPost("afegirApat", body);
-  showToast("Àpat afegit");
-}
 function changeApatsMonth(delta){ apatsCalMonth.setMonth(apatsCalMonth.getMonth()+delta); renderApatsCalendar(); }
 function toggleApatsExpand(dStr){ apatsExpandedDate = (apatsExpandedDate===dStr)?null:dStr; renderApatsCalendar(); }
 function renderApatsCalendar(){
@@ -574,30 +539,39 @@ function renderApatsDayPanel(dStr){
       <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
       ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
     </div>`).join("") : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
-  return `<div class="cal-expanded"><div class="cal-expanded-title">${labelRaw}</div>${inner}</div>`;
+  return `<div class="cal-expanded">
+    <div class="cal-expanded-title">${labelRaw}</div>
+    ${inner}
+    <div class="section-title" style="margin-top:14px;">Afegir a aquest dia</div>
+    <div class="form" style="margin:6px 0 0;">
+      <label>Àpat</label>
+      <select id="apatTipus_${dStr}"><option>Esmorzar</option><option>Dinar</option><option>Sopar</option><option>Snack</option></select>
+      <label>Descripció</label>
+      <input id="apatDesc_${dStr}" placeholder="Què vas menjar...">
+      <label>Nota (opcional)</label>
+      <input id="apatNota_${dStr}" placeholder="Sensacions, quantitat...">
+      <button class="submit" onclick="afegirApatDia('${dStr}')">Afegir</button>
+    </div>
+  </div>`;
+}
+async function afegirApatDia(dStr){
+  const body = {
+    data: dStr,
+    apat: document.getElementById(`apatTipus_${dStr}`).value,
+    descripcio: document.getElementById(`apatDesc_${dStr}`).value,
+    nota: document.getElementById(`apatNota_${dStr}`).value
+  };
+  if(!body.descripcio){ showToast("Escriu una descripció"); return; }
+  STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota});
+  renderApatsCalendar();
+  await apiPost("afegirApat", body);
+  showToast("Àpat afegit");
 }
 
 /* ============ GIMNÀS ============ */
 let gimnasCalMonth = new Date(); gimnasCalMonth.setDate(1);
-let gimnasExpandedDate = null;
+let gimnasExpandedDate = fmt(new Date());
 
-async function afegirEntreno(){
-  const body = {
-    data: fmt(new Date()),
-    exercici: document.getElementById("entExercici").value,
-    pes: document.getElementById("entPes").value,
-    series: document.getElementById("entSeries").value,
-    reps: document.getElementById("entReps").value,
-    nota: document.getElementById("entNota").value
-  };
-  if(!body.exercici){ showToast("Escriu l'exercici"); return; }
-  STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota});
-  ["entExercici","entPes","entSeries","entReps","entNota"].forEach(id=>document.getElementById(id).value="");
-  gimnasExpandedDate = body.data;
-  renderGimnasCalendar();
-  await apiPost("afegirEntreno", body);
-  showToast("Sèrie afegida");
-}
 function changeGimnasMonth(delta){ gimnasCalMonth.setMonth(gimnasCalMonth.getMonth()+delta); renderGimnasCalendar(); }
 function toggleGimnasExpand(dStr){ gimnasExpandedDate = (gimnasExpandedDate===dStr)?null:dStr; renderGimnasCalendar(); }
 function renderGimnasCalendar(){
@@ -616,7 +590,37 @@ function renderGimnasDayPanel(dStr){
       <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
       ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
     </div>`).join("") : `<div class="empty">Cap entreno registrat aquest dia.</div>`;
-  return `<div class="cal-expanded"><div class="cal-expanded-title">${labelRaw}</div>${inner}</div>`;
+  return `<div class="cal-expanded">
+    <div class="cal-expanded-title">${labelRaw}</div>
+    ${inner}
+    <div class="section-title" style="margin-top:14px;">Afegir a aquest dia</div>
+    <div class="form" style="margin:6px 0 0;">
+      <div class="grid">
+        <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca"></div>
+        <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5"></div>
+        <div><label>Sèries</label><input id="entSeries_${dStr}" type="number"></div>
+        <div><label>Reps</label><input id="entReps_${dStr}" type="number"></div>
+      </div>
+      <label>Nota (opcional)</label>
+      <input id="entNota_${dStr}" placeholder="RPE, sensacions...">
+      <button class="submit" onclick="afegirEntrenoDia('${dStr}')">Afegir</button>
+    </div>
+  </div>`;
+}
+async function afegirEntrenoDia(dStr){
+  const body = {
+    data: dStr,
+    exercici: document.getElementById(`entExercici_${dStr}`).value,
+    pes: document.getElementById(`entPes_${dStr}`).value,
+    series: document.getElementById(`entSeries_${dStr}`).value,
+    reps: document.getElementById(`entReps_${dStr}`).value,
+    nota: document.getElementById(`entNota_${dStr}`).value
+  };
+  if(!body.exercici){ showToast("Escriu l'exercici"); return; }
+  STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota});
+  renderGimnasCalendar();
+  await apiPost("afegirEntreno", body);
+  showToast("Sèrie afegida");
 }
 
 /* ============ STREAK ============ */
