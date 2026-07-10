@@ -432,7 +432,9 @@ function renderEntrenosList(){
 function computeStreak(){
   let streak = 0;
   let d = new Date();
-  while(true){
+  let salvaguarda = 0;
+  while(salvaguarda < 400){
+    salvaguarda++;
     const dStr = fmt(d);
     const tasques = tasquesActivesDia(d);
     if(tasques.length===0){ d.setDate(d.getDate()-1); continue; } // dia sense tasques no trenca ratxa
