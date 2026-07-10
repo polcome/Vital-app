@@ -198,7 +198,7 @@
       <div class="lbl" id="matinalDateLabel"></div>
       <button class="nav-btn" onclick="changeFocusDay('matinal',1)">›</button>
     </div>
-    <div class="stat-grid single"><div class="stat-box"><div class="num" id="matinalPct">–</div><div class="lbl">% assolit aquest dia</div></div></div>
+    <div class="stat-grid single"><div class="stat-box"><div class="num" id="matinalPct">–</div><div class="lbl">Estat de la rutina d'avui</div></div></div>
     <div id="matinalContent"></div>
   </section>
 
@@ -407,11 +407,18 @@ function fmt(d){ // -> YYYY-MM-DD
 function diaCodi(d){ return DIES_CODI[d.getDay()]; }
 function tasquesActivesDia(d){
   const codi = diaCodi(d);
-  return STATE.tasques.filter(t=>{
+  const items = STATE.tasques.filter(t=>{
     if(String(t.Actiu).toUpperCase()!=="TRUE") return false;
+    if(t.Categoria==="Exercici matinal") return false; // gestionat com a tasca única via la rutina de calistènia
     if(!t.Dies || t.Dies==="Diari") return true;
     return t.Dies.split(",").map(s=>s.trim()).includes(codi);
   }).sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
+
+  const rutinaAvui = STATE.rutinesMati.filter(r=> String(r.Actiu).toUpperCase()!=="FALSE" && (r.Dia==="Diari" || r.Dia===codi));
+  if(rutinaAvui.length){
+    items.unshift({ID:"rutina_mati", Categoria:"Exercici matinal", Nom:"Rutina de calistènia", Dies:"Diari", Actiu:true, Ordre:0});
+  }
+  return items;
 }
 function registreDia(dataStr){
   return STATE.registre.filter(r=>r.Data===dataStr);
@@ -662,58 +669,26 @@ function renderMatinalDetail(){
   document.getElementById("matinalDateLabel").textContent =
     (isToday?"Avui · ":"") + matinalDate.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
 
-  const tasquesCat = tasksByCategoria("Exercici matinal", dStr);
   const codi = diaCodi(matinalDate);
   const rutinaExercicis = STATE.rutinesMati
     .filter(r=> String(r.Actiu).toUpperCase()!=="FALSE" && (r.Dia==="Diari" || r.Dia===codi))
     .sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
 
   const reg = registreDia(dStr);
-  const tasquesFetes = tasquesCat.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-  const rutinaFetes = rutinaExercicis.filter(r=>reg.some(r2=>String(r2.ID_Tasca)===("rm_"+r.ID)&&String(r2.Fet).toUpperCase()==="TRUE")).length;
-  const total = tasquesCat.length + rutinaExercicis.length;
-  const fetes = tasquesFetes + rutinaFetes;
-  document.getElementById("matinalPct").textContent = total ? Math.round((fetes/total)*100)+"%" : "–";
+  const rr = reg.find(r=>String(r.ID_Tasca)==="rutina_mati");
+  const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
+  const pctEl = document.getElementById("matinalPct");
+  pctEl.textContent = rutinaExercicis.length ? (fet ? "Feta ✓" : "Pendent") : "–";
+  pctEl.style.color = fet ? "var(--accent)" : "var(--amber)";
 
   const cont = document.getElementById("matinalContent");
-  if(total===0){ cont.innerHTML = `<div class="empty">Cap tasca ni exercici planificat per aquest dia.</div>`; return; }
-
-  let html = "";
-  if(tasquesCat.length){
-    html += tasquesCat.map(t=>{
-      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-      const nota = rr ? (rr.Nota||"") : "";
-      return `
-      <div class="task-row" data-id="${t.ID}">
-        <div class="check ${fet?'done':''}" onclick="toggleTascaDetail('Exercici matinal','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
-        <div class="body">
-          <div class="name ${fet?'done':''}">${t.Nom}</div>
-          <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
-            onchange="guardarNotaDetail('Exercici matinal','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
-        </div>
-      </div>`;
-    }).join("");
-  }
-  if(rutinaExercicis.length){
-    html += `<div class="section-title">Rutina de calistènia</div>` + rutinaExercicis.map(r=>{
-      const rr = reg.find(r2=>String(r2.ID_Tasca)===("rm_"+r.ID));
-      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-      return `
-      <div class="task-row">
-        <div class="check ${fet?'done':''}" onclick="toggleRutinaMati('${dStr}','${r.ID}','${r.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
-        <div class="body">
-          <div class="name ${fet?'done':''}">${r.Nom}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.Tipus||''}${r.Durada_min?' · ~'+r.Durada_min+' min':''}</div>
-        </div>
-      </div>`;
-    }).join("");
-  }
-  cont.innerHTML = html;
-}
-async function toggleRutinaMati(dStr, rutinaId, nom){
-  await toggleTasca(dStr, "rm_"+rutinaId, "Exercici matinal", nom);
-  renderMatinalDetail();
+  if(!rutinaExercicis.length){ cont.innerHTML = `<div class="empty">Cap exercici planificat per aquest dia.</div>`; return; }
+  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick de "Rutina de calistènia" des del calendari d'Avui.</p>` +
+    rutinaExercicis.map(r=>`<div class="card">
+      <div class="row"><span class="k">${r.Nom}</span></div>
+      <div class="row"><span class="k">Tipus</span><span class="v">${r.Tipus||"–"}</span></div>
+      ${r.Durada_min?`<div class="row"><span class="k">Durada</span><span class="v">~${r.Durada_min} min</span></div>`:""}
+    </div>`).join("");
 }
 function renderRutinesDetail(){ renderDetailDia("Rutines", rutinesDate, "rutinesDateLabel", "rutinesPct", "rutinesContent"); }
 
