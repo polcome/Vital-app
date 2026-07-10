@@ -54,7 +54,7 @@
 
   .section-title{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 8px;}
 
-  .task-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+  .task-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
   .task-row .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;}
   .task-row .check.done{background:var(--accent);border-color:var(--accent);color:#0f1210;font-weight:700;}
   .task-row .body{flex:1;min-width:0;}
@@ -62,20 +62,24 @@
   .task-row .name.done{color:var(--text-muted);text-decoration:line-through;}
   .task-row input.note{width:100%;background:transparent;border:none;border-top:1px dashed var(--border);color:var(--text-muted);font-size:12px;padding-top:5px;margin-top:5px;outline:none;}
   .task-row input.note::placeholder{color:#5c6368;}
+  .task-row .detail-btn{width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text-muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .task-row .detail-btn:active{border-color:var(--accent);color:var(--accent);}
 
   /* ---- Calendari mensual ---- */
-  .cal-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;}
-  .cal-title{font-family:var(--font-display);font-size:17px;text-transform:capitalize;}
-  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 12px;gap:10px;}
+  .cal-title{font-family:var(--font-display);font-size:19px;text-transform:capitalize;}
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:7px;}
   .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
-  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
-  .cal-day{aspect-ratio:1/1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s,background .15s;}
+  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:7px;}
+  .cal-day{min-height:64px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s,background .15s;}
   .cal-day.outside{opacity:0.2;pointer-events:none;}
-  .cal-day.past{background:var(--surface-2);}
+  .cal-day.past{background:#232a2c;border-color:#2d3538;}
+  .cal-day.past .dnum{color:var(--text-muted);}
   .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
   .cal-day.expanded-sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
-  .cal-day .dnum{font-family:var(--font-mono);font-size:13px;}
-  .cal-indicator{width:14px;height:4px;border-radius:2px;background:var(--border);}
+  .cal-day .dnum{font-family:var(--font-mono);font-size:14.5px;}
+  .cal-indicator{width:18px;height:5px;border-radius:3px;background:var(--border);}
   .cal-indicator.full{background:var(--accent);}
   .cal-indicator.partial{background:var(--amber);}
   .cal-indicator.none{background:var(--alert);}
@@ -84,7 +88,7 @@
 
   .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
 
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:default;}
   .card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
   .card .row .k{color:var(--text-muted);}
   .card .row .v{font-family:var(--font-mono);}
@@ -96,11 +100,16 @@
   .form input:focus, .form select:focus{border-color:var(--accent);}
   .form button.submit{width:100%;background:var(--accent);border:none;border-radius:7px;padding:10px;color:#10140f;font-weight:600;font-size:13.5px;margin-top:2px;}
 
-  .datebar{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
-  .datebar .lbl{font-family:var(--font-display);font-size:16px;}
-  .datebar .nav-btn{background:var(--surface);border:1px solid var(--border);width:32px;height:32px;border-radius:50%;color:var(--text);font-size:15px;}
+  .nav-btn{background:var(--surface-2);border:1px solid var(--border);width:42px;height:42px;border-radius:13px;
+    color:var(--text-muted);font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:border-color .15s,color .15s;}
+  .nav-btn:active{border-color:var(--accent);color:var(--accent);}
+
+  .datebar{display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;gap:10px;}
+  .datebar .lbl{font-family:var(--font-display);font-size:16px;text-transform:capitalize;}
 
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+  .stat-grid.single{grid-template-columns:1fr;}
   .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
   .stat-box .num{font-family:var(--font-mono);font-size:24px;color:var(--accent);}
   .stat-box .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
@@ -144,8 +153,13 @@
   <!-- ===== PÀGINA: EXERCICI MATINAL ===== -->
   <section class="page" id="page-matinal">
     <h2 style="font-size:18px;margin:14px 0 4px;">Exercici matinal</h2>
-    <p style="color:var(--text-muted);font-size:12.5px;margin:0 0 10px;">Últims 14 dies</p>
-    <div id="matinalList"></div>
+    <div class="datebar">
+      <button class="nav-btn" onclick="changeFocusDay('matinal',-1)">‹</button>
+      <div class="lbl" id="matinalDateLabel"></div>
+      <button class="nav-btn" onclick="changeFocusDay('matinal',1)">›</button>
+    </div>
+    <div class="stat-grid single"><div class="stat-box"><div class="num" id="matinalPct">–</div><div class="lbl">% assolit aquest dia</div></div></div>
+    <div id="matinalContent"></div>
   </section>
 
   <!-- ===== PÀGINA: ÀPATS ===== -->
@@ -160,8 +174,14 @@
       <input id="apatNota" placeholder="Sensacions, quantitat...">
       <button class="submit" onclick="afegirApat()">Afegir àpat d'avui</button>
     </div>
-    <div class="section-title">Historial recent</div>
-    <div id="apatsList"></div>
+    <div class="section-title">Registre</div>
+    <div class="cal-header">
+      <button class="nav-btn" onclick="changeApatsMonth(-1)">‹</button>
+      <div class="cal-title" id="apatsCalTitle"></div>
+      <button class="nav-btn" onclick="changeApatsMonth(1)">›</button>
+    </div>
+    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
+    <div id="apatsCalGrid"></div>
   </section>
 
   <!-- ===== PÀGINA: GIMNÀS ===== -->
@@ -178,15 +198,26 @@
       <input id="entNota" placeholder="RPE, sensacions...">
       <button class="submit" onclick="afegirEntreno()">Afegir sèrie d'avui</button>
     </div>
-    <div class="section-title">Historial recent</div>
-    <div id="entrenosList"></div>
+    <div class="section-title">Registre</div>
+    <div class="cal-header">
+      <button class="nav-btn" onclick="changeGimnasMonth(-1)">‹</button>
+      <div class="cal-title" id="gimnasCalTitle"></div>
+      <button class="nav-btn" onclick="changeGimnasMonth(1)">›</button>
+    </div>
+    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
+    <div id="gimnasCalGrid"></div>
   </section>
 
   <!-- ===== PÀGINA: RUTINES ===== -->
   <section class="page" id="page-rutines">
     <h2 style="font-size:18px;margin:14px 0 4px;">Rutines / Hàbits</h2>
-    <p style="color:var(--text-muted);font-size:12.5px;margin:0 0 10px;">Últims 14 dies</p>
-    <div id="rutinesList"></div>
+    <div class="datebar">
+      <button class="nav-btn" onclick="changeFocusDay('rutines',-1)">‹</button>
+      <div class="lbl" id="rutinesDateLabel"></div>
+      <button class="nav-btn" onclick="changeFocusDay('rutines',1)">›</button>
+    </div>
+    <div class="stat-grid single"><div class="stat-box"><div class="num" id="rutinesPct">–</div><div class="lbl">% assolit aquest dia</div></div></div>
+    <div id="rutinesContent"></div>
   </section>
 
   <!-- ===== PÀGINA: ESTADÍSTIQUES ===== -->
@@ -288,8 +319,8 @@ async function loadAll(){
   if(!r.ok){ showToast("Error carregant dades"); return; }
   STATE.tasques = r.tasques; STATE.registre = r.registre;
   STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
-  renderCalendar(); renderMatinal(); renderRutines();
-  renderApatsList(); renderEntrenosList(); computeStreak(); renderStats();
+  renderCalendar(); renderMatinalDetail(); renderRutinesDetail();
+  renderApatsCalendar(); renderGimnasCalendar(); computeStreak(); renderStats();
 }
 
 /* ============ NAV TABS ============ */
@@ -299,7 +330,12 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("page-"+btn.dataset.page).classList.add("active");
-    if(btn.dataset.page==="stats") renderStats();
+    const p = btn.dataset.page;
+    if(p==="stats") renderStats();
+    else if(p==="matinal") renderMatinalDetail();
+    else if(p==="rutines") renderRutinesDetail();
+    else if(p==="apats") renderApatsCalendar();
+    else if(p==="gimnas") renderGimnasCalendar();
   });
 });
 
@@ -319,13 +355,17 @@ function diaStatus(dStr, todayStr){
   if(dStr===todayStr) return "today";
   return dStr < todayStr ? "past" : "future";
 }
-function renderCalendar(){
-  const titleRaw = calMonth.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
-  document.getElementById("calTitle").textContent = titleRaw.charAt(0).toUpperCase()+titleRaw.slice(1);
 
-  const year = calMonth.getFullYear(), month = calMonth.getMonth();
+/** Helper genèric per construir un calendari mensual amb dies desplegables.
+ * indicatorFn(dStr) -> {cls, dot(bool)}
+ * panelFn(dStr) -> html del panell desplegat
+ */
+function buildCalendarHTML(monthDate, expandedDate, indicatorFn, panelFn, clickFnName){
+  const titleRaw = monthDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
+  const title = titleRaw.charAt(0).toUpperCase()+titleRaw.slice(1);
+  const year = monthDate.getFullYear(), month = monthDate.getMonth();
   const firstDay = new Date(year, month, 1);
-  const startOffset = (firstDay.getDay()+6)%7; // 0=dilluns
+  const startOffset = (firstDay.getDay()+6)%7;
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const todayStr = fmt(new Date());
 
@@ -340,25 +380,43 @@ function renderCalendar(){
     html += `<div class="cal-week">`;
     weekCells.forEach(c=>{
       const dStr = fmt(c.date);
-      const tasques = tasquesActivesDia(c.date);
-      const reg = registreDia(dStr);
-      const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-      let indClass = "";
-      if(tasques.length>0){ indClass = fetes===tasques.length ? "full" : (fetes>0 ? "partial" : "none"); }
+      const {cls, dot} = indicatorFn(dStr);
       const status = diaStatus(dStr, todayStr);
       html += `<div class="cal-day ${status} ${c.outside?'outside':''} ${dStr===expandedDate?'expanded-sel':''}"
-        onclick="${c.outside?'':`toggleExpand('${dStr}')`}">
+        onclick="${c.outside?'':`${clickFnName}('${dStr}')`}">
         <div class="dnum">${c.date.getDate()}</div>
-        ${tasques.length>0?`<div class="cal-indicator ${indClass}"></div>`:''}
+        ${dot?`<div class="cal-indicator ${cls}"></div>`:''}
       </div>`;
     });
     html += `</div>`;
     if(expandedDate && weekCells.some(c=>fmt(c.date)===expandedDate)){
-      html += renderExpandedPanel(expandedDate);
+      html += panelFn(expandedDate);
     }
   }
+  return {html, title};
+}
+
+function renderCalendar(){
+  const {html, title} = buildCalendarHTML(calMonth, expandedDate,
+    dStr=>{
+      const d = new Date(dStr+"T00:00:00");
+      const tasques = tasquesActivesDia(d);
+      const reg = registreDia(dStr);
+      const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+      if(tasques.length===0) return {cls:"", dot:false};
+      return {cls: fetes===tasques.length ? "full" : (fetes>0 ? "partial" : "none"), dot:true};
+    },
+    renderExpandedPanel, "toggleExpand");
+  document.getElementById("calTitle").textContent = title;
   document.getElementById("calGrid").innerHTML = html;
 }
+
+const CATEGORIA_PAGINA = {
+  "Exercici matinal": "matinal",
+  "Rutines": "rutines",
+  "Àpats": "apats",
+  "Gimnàs": "gimnas"
+};
 
 function renderExpandedPanel(dStr){
   const d = new Date(dStr+"T00:00:00");
@@ -376,6 +434,7 @@ function renderExpandedPanel(dStr){
         const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
         const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
         const nota = rr ? (rr.Nota||"") : "";
+        const pag = CATEGORIA_PAGINA[cat];
         return `
         <div class="task-row" data-id="${t.ID}">
           <div class="check ${fet?'done':''}" onclick="toggleTasca('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
@@ -384,6 +443,7 @@ function renderExpandedPanel(dStr){
             <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
               onchange="guardarNota('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
           </div>
+          ${pag?`<div class="detail-btn" title="Veure detall" onclick="goToCategoryPage('${cat}','${dStr}')">›</div>`:''}
         </div>`;
       }).join("");
       return `<div class="section-title">${cat}</div>${rows}`;
@@ -393,6 +453,19 @@ function renderExpandedPanel(dStr){
     <div class="cal-expanded-title">${labelRaw}</div>
     ${inner}
   </div>`;
+}
+
+function goToCategoryPage(categoria, dStr){
+  const target = CATEGORIA_PAGINA[categoria];
+  if(!target) return;
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelector(`.tab-btn[data-page="${target}"]`).classList.add("active");
+  document.getElementById("page-"+target).classList.add("active");
+  if(target==="matinal"){ matinalDate = new Date(dStr+"T00:00:00"); renderMatinalDetail(); }
+  else if(target==="rutines"){ rutinesDate = new Date(dStr+"T00:00:00"); renderRutinesDetail(); }
+  else if(target==="apats"){ apatsCalMonth = new Date(dStr+"T00:00:00"); apatsCalMonth.setDate(1); apatsExpandedDate = dStr; renderApatsCalendar(); }
+  else if(target==="gimnas"){ gimnasCalMonth = new Date(dStr+"T00:00:00"); gimnasCalMonth.setDate(1); gimnasExpandedDate = dStr; renderGimnasCalendar(); }
 }
 
 async function toggleTasca(dataStr, id, categoria, nom){
@@ -416,27 +489,59 @@ async function guardarNota(dataStr, id, categoria, nom, valor){
   showToast("Nota desada");
 }
 
-/* ============ MATINAL / RUTINES (llista 14 dies) ============ */
-function renderCategoriaHistoric(containerId, categoria){
-  const cont = document.getElementById(containerId);
-  const dies = [];
-  for(let i=0;i<14;i++){ const d=new Date(); d.setDate(d.getDate()-i); dies.push(d); }
-  let html = "";
-  dies.forEach(d=>{
-    const dStr = fmt(d);
-    const tasques = tasksByCategoria(categoria, dStr);
-    if(tasques.length===0) return;
-    const reg = registreDia(dStr);
-    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-    html += `<div class="card"><div class="row"><span class="k">${d.toLocaleDateString('ca-ES',{weekday:'short',day:'numeric',month:'short'})}</span>
-      <span class="v" style="color:${fetes===tasques.length?'var(--accent)':'var(--text-muted)'}">${fetes}/${tasques.length}</span></div></div>`;
-  });
-  cont.innerHTML = html || `<div class="empty">Encara no hi ha dades.</div>`;
+/* ============ MATINAL / RUTINES (vista de dia enfocat) ============ */
+let matinalDate = new Date();
+let rutinesDate = new Date();
+
+function changeFocusDay(pagina, delta){
+  if(pagina==="matinal"){ matinalDate.setDate(matinalDate.getDate()+delta); renderMatinalDetail(); }
+  else { rutinesDate.setDate(rutinesDate.getDate()+delta); renderRutinesDetail(); }
 }
-function renderMatinal(){ renderCategoriaHistoric("matinalList","Exercici matinal"); }
-function renderRutines(){ renderCategoriaHistoric("rutinesList","Rutines"); }
+
+function renderDetailDia(categoria, data, dateLabelId, pctId, contentId){
+  const dStr = fmt(data);
+  const isToday = dStr===fmt(new Date());
+  document.getElementById(dateLabelId).textContent =
+    (isToday?"Avui · ":"") + data.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  const tasques = tasksByCategoria(categoria, dStr);
+  const reg = registreDia(dStr);
+  const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+  document.getElementById(pctId).textContent = tasques.length ? Math.round((fetes/tasques.length)*100)+"%" : "–";
+
+  const cont = document.getElementById(contentId);
+  if(tasques.length===0){ cont.innerHTML = `<div class="empty">Cap tasca planificada per aquest dia.</div>`; return; }
+  cont.innerHTML = tasques.map(t=>{
+    const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
+    const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
+    const nota = rr ? (rr.Nota||"") : "";
+    return `
+    <div class="task-row" data-id="${t.ID}">
+      <div class="check ${fet?'done':''}" onclick="toggleTascaDetail('${categoria}','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
+      <div class="body">
+        <div class="name ${fet?'done':''}">${t.Nom}</div>
+        <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
+          onchange="guardarNotaDetail('${categoria}','${dStr}','${t.ID}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
+      </div>
+    </div>`;
+  }).join("");
+}
+function renderMatinalDetail(){ renderDetailDia("Exercici matinal", matinalDate, "matinalDateLabel", "matinalPct", "matinalContent"); }
+function renderRutinesDetail(){ renderDetailDia("Rutines", rutinesDate, "rutinesDateLabel", "rutinesPct", "rutinesContent"); }
+
+async function toggleTascaDetail(categoria, dStr, id, nom){
+  await toggleTasca(dStr, id, categoria, nom);
+  renderMatinalDetail(); renderRutinesDetail();
+}
+async function guardarNotaDetail(categoria, dStr, id, nom, valor){
+  await guardarNota(dStr, id, categoria, nom, valor);
+  renderMatinalDetail(); renderRutinesDetail();
+}
 
 /* ============ ÀPATS ============ */
+let apatsCalMonth = new Date(); apatsCalMonth.setDate(1);
+let apatsExpandedDate = null;
+
 async function afegirApat(){
   const body = {
     data: fmt(new Date()),
@@ -445,23 +550,37 @@ async function afegirApat(){
     nota: document.getElementById("apatNota").value
   };
   if(!body.descripcio){ showToast("Escriu una descripció"); return; }
-  STATE.apats.unshift(body);
+  STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota});
   document.getElementById("apatDesc").value=""; document.getElementById("apatNota").value="";
-  renderApatsList();
+  apatsExpandedDate = body.data;
+  renderApatsCalendar();
   await apiPost("afegirApat", body);
   showToast("Àpat afegit");
 }
-function renderApatsList(){
-  const cont = document.getElementById("apatsList");
-  const items = [...STATE.apats].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,20);
-  cont.innerHTML = items.map(a=>`<div class="card">
-    <div class="row"><span class="k">${a.Apat} · ${a.Data}</span></div>
-    <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
-    ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
-  </div>`).join("") || `<div class="empty">Encara no hi ha àpats registrats.</div>`;
+function changeApatsMonth(delta){ apatsCalMonth.setMonth(apatsCalMonth.getMonth()+delta); renderApatsCalendar(); }
+function toggleApatsExpand(dStr){ apatsExpandedDate = (apatsExpandedDate===dStr)?null:dStr; renderApatsCalendar(); }
+function renderApatsCalendar(){
+  const {html, title} = buildCalendarHTML(apatsCalMonth, apatsExpandedDate,
+    dStr=>{ const has = STATE.apats.some(a=>a.Data===dStr); return {cls:"full", dot:has}; },
+    renderApatsDayPanel, "toggleApatsExpand");
+  document.getElementById("apatsCalTitle").textContent = title;
+  document.getElementById("apatsCalGrid").innerHTML = html;
+}
+function renderApatsDayPanel(dStr){
+  const items = STATE.apats.filter(a=>a.Data===dStr);
+  const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const inner = items.length ? items.map(a=>`<div class="card">
+      <div class="row"><span class="k">${a.Apat}</span></div>
+      <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
+      ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
+    </div>`).join("") : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
+  return `<div class="cal-expanded"><div class="cal-expanded-title">${labelRaw}</div>${inner}</div>`;
 }
 
 /* ============ GIMNÀS ============ */
+let gimnasCalMonth = new Date(); gimnasCalMonth.setDate(1);
+let gimnasExpandedDate = null;
+
 async function afegirEntreno(){
   const body = {
     data: fmt(new Date()),
@@ -474,18 +593,30 @@ async function afegirEntreno(){
   if(!body.exercici){ showToast("Escriu l'exercici"); return; }
   STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota});
   ["entExercici","entPes","entSeries","entReps","entNota"].forEach(id=>document.getElementById(id).value="");
-  renderEntrenosList();
+  gimnasExpandedDate = body.data;
+  renderGimnasCalendar();
   await apiPost("afegirEntreno", body);
   showToast("Sèrie afegida");
 }
-function renderEntrenosList(){
-  const cont = document.getElementById("entrenosList");
-  const items = [...STATE.entrenos].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,20);
-  cont.innerHTML = items.map(e=>`<div class="card">
-    <div class="row"><span class="k">${e.Exercici}</span><span class="v">${e.Data}</span></div>
-    <div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
-    <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
-  </div>`).join("") || `<div class="empty">Encara no hi ha entrenos registrats.</div>`;
+function changeGimnasMonth(delta){ gimnasCalMonth.setMonth(gimnasCalMonth.getMonth()+delta); renderGimnasCalendar(); }
+function toggleGimnasExpand(dStr){ gimnasExpandedDate = (gimnasExpandedDate===dStr)?null:dStr; renderGimnasCalendar(); }
+function renderGimnasCalendar(){
+  const {html, title} = buildCalendarHTML(gimnasCalMonth, gimnasExpandedDate,
+    dStr=>{ const has = STATE.entrenos.some(e=>e.Data===dStr); return {cls:"full", dot:has}; },
+    renderGimnasDayPanel, "toggleGimnasExpand");
+  document.getElementById("gimnasCalTitle").textContent = title;
+  document.getElementById("gimnasCalGrid").innerHTML = html;
+}
+function renderGimnasDayPanel(dStr){
+  const items = STATE.entrenos.filter(e=>e.Data===dStr);
+  const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const inner = items.length ? items.map(e=>`<div class="card">
+      <div class="row"><span class="k">${e.Exercici}</span></div>
+      <div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
+      <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
+      ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
+    </div>`).join("") : `<div class="empty">Cap entreno registrat aquest dia.</div>`;
+  return `<div class="cal-expanded"><div class="cal-expanded-title">${labelRaw}</div>${inner}</div>`;
 }
 
 /* ============ STREAK ============ */
