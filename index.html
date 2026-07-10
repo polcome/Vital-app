@@ -13,6 +13,7 @@
     --text:#edebe6; --text-muted:#8f979d;
     --accent:#8fb996; --accent-dim:#4f6b56;
     --amber:#e8a652; --amber-dim:#7a5b30;
+    --blue:#6fa8e0; --blue-dim:#3d5a7a;
     --alert:#b15e52;
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --radius:10px;
@@ -85,16 +86,25 @@
   .cal-indicator.full{background:var(--accent);}
   .cal-indicator.partial{background:var(--amber);}
   .cal-indicator.none{background:var(--alert);}
+  .cal-indicator.blue{background:var(--blue);}
   .cal-expanded{background:var(--surface-2);border:1px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:10px;animation:fade .2s ease;}
   .cal-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:8px;color:var(--accent);text-transform:capitalize;}
 
   .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:default;border-left:3px solid var(--accent-dim);}
+  .card.cardio{border-left-color:var(--blue-dim);}
   .card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
   .card .row .k{color:var(--text-muted);}
   .card .row .v{font-family:var(--font-mono);}
   .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+
+  .type-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;border-radius:12px;margin:12px 0 8px;}
+  .type-badge .dot{width:7px;height:7px;border-radius:50%;}
+  .type-badge.gym{background:rgba(143,185,150,.15);color:var(--accent);}
+  .type-badge.gym .dot{background:var(--accent);}
+  .type-badge.cardio{background:rgba(111,168,224,.15);color:var(--blue);}
+  .type-badge.cardio .dot{background:var(--blue);}
   .icon-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
     color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
   .icon-btn:active{border-color:var(--accent);color:var(--accent);}
@@ -206,16 +216,16 @@
   </section>
 
   <!-- ===== PÀGINA: GIMNÀS ===== -->
-  <section class="page" id="page-gimnas">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Gimnàs / Entreno</h2>
+  <section class="page" id="page-entrenaments">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Entrenaments</h2>
     <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px;">Clica qualsevol dia per veure'l o afegir-hi un entreno (passat, avui o futur)</p>
     <div class="cal-header">
-      <button class="nav-btn" onclick="changeGimnasMonth(-1)">‹</button>
-      <div class="cal-title" id="gimnasCalTitle"></div>
-      <button class="nav-btn" onclick="changeGimnasMonth(1)">›</button>
+      <button class="nav-btn" onclick="changeEntrenamentsMonth(-1)">‹</button>
+      <div class="cal-title" id="entrenamentsCalTitle"></div>
+      <button class="nav-btn" onclick="changeEntrenamentsMonth(1)">›</button>
     </div>
     <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
-    <div id="gimnasCalGrid"></div>
+    <div id="entrenamentsCalGrid"></div>
   </section>
 
   <!-- ===== PÀGINA: RUTINES ===== -->
@@ -270,7 +280,12 @@
           <span class="cancel-link" id="tascaCancelLink" style="display:none;" onclick="cancelEditTasca()">Cancel·la</span></div>
         <div class="form">
           <label>Categoria</label>
-          <input id="tascaCategoria" placeholder="Exercici matinal / Àpats / Gimnàs / Rutines...">
+          <select id="tascaCategoria">
+            <option>Exercici matinal</option>
+            <option>Àpats</option>
+            <option>Entrenament</option>
+            <option>Rutines</option>
+          </select>
           <label>Nom</label>
           <input id="tascaNom" placeholder="Nom de la tasca">
           <label>Dies (Diari, o L,X,V)</label>
@@ -339,7 +354,7 @@
   <button class="tab-btn active" data-page="avui"><span class="ic">📅</span>Avui</button>
   <button class="tab-btn" data-page="matinal"><span class="ic">🌅</span>Matí</button>
   <button class="tab-btn" data-page="apats"><span class="ic">🍽️</span>Àpats</button>
-  <button class="tab-btn" data-page="gimnas"><span class="ic">🏋️</span>Gimnàs</button>
+  <button class="tab-btn" data-page="entrenaments"><span class="ic">🏋️</span>Entrenaments</button>
   <button class="tab-btn" data-page="rutines"><span class="ic">✅</span>Rutines</button>
   <button class="tab-btn" data-page="stats"><span class="ic">📊</span>Stats</button>
 </nav>
@@ -413,7 +428,7 @@ async function loadAll(){
   STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
   STATE.rutinesMati = r.rutinesMati || [];
   renderCalendar(); renderMatinalDetail(); renderRutinesDetail();
-  renderApatsCalendar(); renderGimnasCalendar(); computeStreak(); renderStats();
+  renderApatsCalendar(); renderEntrenamentsCalendar(); computeStreak(); renderStats();
   renderAdminTasquesList(); renderAdminMesuresList(); renderAdminRutinesList();
 }
 
@@ -429,7 +444,7 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
     else if(p==="matinal") renderMatinalDetail();
     else if(p==="rutines") renderRutinesDetail();
     else if(p==="apats") renderApatsCalendar();
-    else if(p==="gimnas") renderGimnasCalendar();
+    else if(p==="entrenaments") renderEntrenamentsCalendar();
   });
 });
 
@@ -529,7 +544,7 @@ const CATEGORIA_PAGINA = {
   "Exercici matinal": "matinal",
   "Rutines": "rutines",
   "Àpats": "apats",
-  "Gimnàs": "gimnas"
+  "Entrenament": "entrenaments"
 };
 
 function renderExpandedPanel(dStr){
@@ -579,7 +594,7 @@ function goToCategoryPage(categoria, dStr){
   if(target==="matinal"){ matinalDate = new Date(dStr+"T00:00:00"); renderMatinalDetail(); }
   else if(target==="rutines"){ rutinesDate = new Date(dStr+"T00:00:00"); renderRutinesDetail(); }
   else if(target==="apats"){ apatsCalMonth = new Date(dStr+"T00:00:00"); apatsCalMonth.setDate(1); apatsExpandedDate = dStr; renderApatsCalendar(); }
-  else if(target==="gimnas"){ gimnasCalMonth = new Date(dStr+"T00:00:00"); gimnasCalMonth.setDate(1); gimnasExpandedDate = dStr; renderGimnasCalendar(); }
+  else if(target==="entrenaments"){ entrenamentsCalMonth = new Date(dStr+"T00:00:00"); entrenamentsCalMonth.setDate(1); entrenamentsExpandedDate = dStr; renderEntrenamentsCalendar(); }
 }
 
 async function toggleTasca(dataStr, id, categoria, nom){
@@ -744,54 +759,101 @@ async function eliminarApatClick(id){
 }
 
 /* ============ GIMNÀS ============ */
-let gimnasCalMonth = new Date(); gimnasCalMonth.setDate(1);
-let gimnasExpandedDate = fmt(new Date());
+let entrenamentsCalMonth = new Date(); entrenamentsCalMonth.setDate(1);
+let entrenamentsExpandedDate = fmt(new Date());
 
-function changeGimnasMonth(delta){ gimnasCalMonth.setMonth(gimnasCalMonth.getMonth()+delta); renderGimnasCalendar(); }
-function toggleGimnasExpand(dStr){ gimnasExpandedDate = (gimnasExpandedDate===dStr)?null:dStr; renderGimnasCalendar(); }
-function renderGimnasCalendar(){
-  const {html, title} = buildCalendarHTML(gimnasCalMonth, gimnasExpandedDate,
-    dStr=>{ const has = STATE.entrenos.some(e=>e.Data===dStr); return {cls:"full", dot:has}; },
-    renderGimnasDayPanel, "toggleGimnasExpand");
-  document.getElementById("gimnasCalTitle").textContent = title;
-  document.getElementById("gimnasCalGrid").innerHTML = html;
+function changeEntrenamentsMonth(delta){ entrenamentsCalMonth.setMonth(entrenamentsCalMonth.getMonth()+delta); renderEntrenamentsCalendar(); }
+function toggleEntrenamentsExpand(dStr){ entrenamentsExpandedDate = (entrenamentsExpandedDate===dStr)?null:dStr; renderEntrenamentsCalendar(); }
+function renderEntrenamentsCalendar(){
+  const {html, title} = buildCalendarHTML(entrenamentsCalMonth, entrenamentsExpandedDate,
+    dStr=>{
+      const dayItems = STATE.entrenos.filter(e=>e.Data===dStr);
+      if(!dayItems.length) return {cls:"", dot:false};
+      const hasGym = dayItems.some(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
+      const hasCardio = dayItems.some(e=>e.Tipus==="Cardio");
+      const cls = hasGym ? "full" : (hasCardio ? "blue" : "full");
+      return {cls, dot:true};
+    },
+    renderEntrenamentsDayPanel, "toggleEntrenamentsExpand");
+  document.getElementById("entrenamentsCalTitle").textContent = title;
+  document.getElementById("entrenamentsCalGrid").innerHTML = html;
 }
-let gimnasEditingId = null;
+let entrenamentsEditingId = null;
 
-function renderGimnasDayPanel(dStr){
+function fmtDuracio(min){
+  min = Number(min) || 0;
+  const h = Math.floor(min/60), m = min%60;
+  if(h===0) return m+"min";
+  if(m===0) return h+"h";
+  return h+"h "+m+"min";
+}
+
+function renderEntrenamentsDayPanel(dStr){
   const items = STATE.entrenos.filter(e=>e.Data===dStr);
   const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-  const editingItem = gimnasEditingId ? items.find(e=>String(e.ID)===String(gimnasEditingId)) : null;
-  const inner = items.length
-    ? `<div class="log-subtitle">Registrat (${items.length})</div>` + items.map(e=>`<div class="card">
+  const editingItem = entrenamentsEditingId ? items.find(e=>String(e.ID)===String(entrenamentsEditingId)) : null;
+
+  const gimnasItems = items.filter(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
+  const cardioItems = items.filter(e=>e.Tipus==="Cardio");
+
+  const cardHtml = (e, cardioClass)=>`<div class="card ${cardioClass?'cardio':''}">
         <div class="card-head">
-          <span class="k">${e.Exercici}</span>
+          <span class="k">${cardioClass ? (e.Subtipus||"Cardio") : e.Exercici}</span>
           ${e.ID?`<div class="icon-row">
             <div class="icon-btn" onclick="startEditEntreno('${e.ID}')">✎</div>
             <div class="icon-btn danger" onclick="eliminarEntrenoClick('${e.ID}')">🗑</div>
           </div>`:''}
         </div>
-        <div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
-        <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
+        ${cardioClass
+          ? `<div class="row"><span class="k">Durada</span><span class="v">${fmtDuracio(e.Minuts)}</span></div>`
+          : `<div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
+             <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>`}
         ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
-      </div>`).join("")
-    : `<div class="empty">Cap entreno registrat aquest dia.</div>`;
+      </div>`;
+
+  let inner = "";
+  if(!items.length){
+    inner = `<div class="empty">Cap entrenament registrat aquest dia.</div>`;
+  } else {
+    if(gimnasItems.length) inner += `<div class="type-badge gym"><span class="dot"></span>Gimnàs · ${gimnasItems.length}</div>` + gimnasItems.map(e=>cardHtml(e,false)).join("");
+    if(cardioItems.length) inner += `<div class="type-badge cardio"><span class="dot"></span>Cardio · ${cardioItems.length}</div>` + cardioItems.map(e=>cardHtml(e,true)).join("");
+  }
+
   const isEdit = !!editingItem;
+  const tipusActual = editingItem ? (editingItem.Tipus||"Gimnàs") : "Gimnàs";
+  const showGym = tipusActual==="Gimnàs", showCardio = tipusActual==="Cardio";
+
   return `<div class="cal-expanded">
     <div class="cal-expanded-title">${labelRaw}</div>
     ${inner}
     <div class="add-box ${isEdit?'editing':''}">
       <div class="add-box-title">
-        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant sèrie':'Afegir a aquest dia'}</span>
+        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant entrenament':'Afegir a aquest dia'}</span>
         ${isEdit?`<span class="cancel-link" onclick="cancelEditEntreno()">Cancel·la</span>`:''}
       </div>
       <div class="form">
-        <div class="grid">
-          <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca" value="${editingItem?String(editingItem.Exercici||'').replace(/"/g,'&quot;'):''}"></div>
-          <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5" value="${editingItem?editingItem.Pes_kg||'':''}"></div>
-          <div><label>Sèries</label><input id="entSeries_${dStr}" type="number" value="${editingItem?editingItem.Series||'':''}"></div>
-          <div><label>Reps</label><input id="entReps_${dStr}" type="number" value="${editingItem?editingItem.Reps||'':''}"></div>
+        <label>Tipus d'entrenament</label>
+        <select id="entTipus_${dStr}" onchange="toggleEntTipus('${dStr}')">
+          <option ${showGym?'selected':''}>Gimnàs</option>
+          <option ${showCardio?'selected':''}>Cardio</option>
+        </select>
+
+        <div id="entGimnasFields_${dStr}" style="display:${showGym?'block':'none'};">
+          <div class="grid">
+            <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca" value="${editingItem&&showGym?String(editingItem.Exercici||'').replace(/"/g,'&quot;'):''}"></div>
+            <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5" value="${editingItem&&showGym?editingItem.Pes_kg||'':''}"></div>
+            <div><label>Sèries</label><input id="entSeries_${dStr}" type="number" value="${editingItem&&showGym?editingItem.Series||'':''}"></div>
+            <div><label>Reps</label><input id="entReps_${dStr}" type="number" value="${editingItem&&showGym?editingItem.Reps||'':''}"></div>
+          </div>
         </div>
+
+        <div id="entCardioFields_${dStr}" style="display:${showCardio?'block':'none'};">
+          <label>Tipus de cardio</label>
+          <select id="entSubtipus_${dStr}">${selOpts(['Futbol','Running','Caminar','Altres'], editingItem?editingItem.Subtipus:'Futbol')}</select>
+          <label>Temps (minuts)</label>
+          <input id="entMinuts_${dStr}" type="number" placeholder="60" value="${editingItem&&showCardio?editingItem.Minuts||'':''}">
+        </div>
+
         <label>Nota (opcional)</label>
         <input id="entNota_${dStr}" placeholder="RPE, sensacions..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
         <button class="submit" onclick="guardarEntrenoDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
@@ -799,40 +861,53 @@ function renderGimnasDayPanel(dStr){
     </div>
   </div>`;
 }
+function toggleEntTipus(dStr){
+  const v = document.getElementById(`entTipus_${dStr}`).value;
+  document.getElementById(`entGimnasFields_${dStr}`).style.display = v==="Gimnàs" ? "block" : "none";
+  document.getElementById(`entCardioFields_${dStr}`).style.display = v==="Cardio" ? "block" : "none";
+}
 async function guardarEntrenoDia(dStr){
-  const body = {
-    data: dStr,
-    exercici: document.getElementById(`entExercici_${dStr}`).value,
-    pes: document.getElementById(`entPes_${dStr}`).value,
-    series: document.getElementById(`entSeries_${dStr}`).value,
-    reps: document.getElementById(`entReps_${dStr}`).value,
-    nota: document.getElementById(`entNota_${dStr}`).value
-  };
-  if(!body.exercici){ showToast("Escriu l'exercici"); return; }
-  if(gimnasEditingId){
-    body.id = gimnasEditingId;
-    const idx = STATE.entrenos.findIndex(e=>String(e.ID)===String(gimnasEditingId));
-    if(idx>-1) STATE.entrenos[idx] = {ID:gimnasEditingId, Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota};
-    gimnasEditingId = null;
-    renderGimnasCalendar();
-    await apiPost("editarEntreno", body);
-    showToast("Sèrie actualitzada");
+  const tipus = document.getElementById(`entTipus_${dStr}`).value;
+  const body = { data: dStr, tipus, nota: document.getElementById(`entNota_${dStr}`).value };
+  let novaEntrada;
+  if(tipus==="Gimnàs"){
+    body.exercici = document.getElementById(`entExercici_${dStr}`).value;
+    body.pes = document.getElementById(`entPes_${dStr}`).value;
+    body.series = document.getElementById(`entSeries_${dStr}`).value;
+    body.reps = document.getElementById(`entReps_${dStr}`).value;
+    if(!body.exercici){ showToast("Escriu l'exercici"); return; }
+    novaEntrada = {Data:body.data, Tipus:"Gimnàs", Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Subtipus:"", Minuts:"", Nota:body.nota};
   } else {
-    STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota, ID:null});
-    renderGimnasCalendar();
+    body.subtipus = document.getElementById(`entSubtipus_${dStr}`).value;
+    body.minuts = document.getElementById(`entMinuts_${dStr}`).value;
+    if(!body.minuts){ showToast("Indica els minuts"); return; }
+    novaEntrada = {Data:body.data, Tipus:"Cardio", Exercici:"", Series:"", Reps:"", Pes_kg:"", Subtipus:body.subtipus, Minuts:body.minuts, Nota:body.nota};
+  }
+
+  if(entrenamentsEditingId){
+    body.id = entrenamentsEditingId;
+    const idx = STATE.entrenos.findIndex(e=>String(e.ID)===String(entrenamentsEditingId));
+    if(idx>-1) STATE.entrenos[idx] = {...novaEntrada, ID:entrenamentsEditingId};
+    entrenamentsEditingId = null;
+    renderEntrenamentsCalendar();
+    await apiPost("editarEntreno", body);
+    showToast("Entrenament actualitzat");
+  } else {
+    STATE.entrenos.unshift({...novaEntrada, ID:null});
+    renderEntrenamentsCalendar();
     const r = await apiPost("afegirEntreno", body);
     if(r && r.id && STATE.entrenos[0]) STATE.entrenos[0].ID = r.id;
-    showToast("Sèrie afegida");
+    showToast("Entrenament afegit");
   }
 }
-function startEditEntreno(id){ gimnasEditingId = id; renderGimnasCalendar(); }
-function cancelEditEntreno(){ gimnasEditingId = null; renderGimnasCalendar(); }
+function startEditEntreno(id){ entrenamentsEditingId = id; renderEntrenamentsCalendar(); }
+function cancelEditEntreno(){ entrenamentsEditingId = null; renderEntrenamentsCalendar(); }
 async function eliminarEntrenoClick(id){
-  if(!confirm("Segur que vols eliminar aquest entreno?")) return;
+  if(!confirm("Segur que vols eliminar aquest entrenament?")) return;
   STATE.entrenos = STATE.entrenos.filter(e=>String(e.ID)!==String(id));
-  renderGimnasCalendar();
+  renderEntrenamentsCalendar();
   await apiPost("eliminarEntreno", {id});
-  showToast("Entreno eliminat");
+  showToast("Entrenament eliminat");
 }
 
 /* ============ ADMIN: TASQUES ============ */
@@ -1079,7 +1154,7 @@ function renderStats(){
   drawChart("chartPes","line", mesuresRang.map(m=>m.Data.slice(5)),
     [{label:"Pes (kg)", data:mesuresRang.map(m=>Number(m.Pes_kg)), borderColor:"#e8a652", backgroundColor:"rgba(232,166,82,.15)", fill:true, tension:.3}]);
 
-  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=fmt(dies[0]));
+  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=fmt(dies[0]) && (e.Tipus||"Gimnàs")==="Gimnàs");
   const volumPerExercici = {};
   entrenosRang.forEach(e=>{
     const vol = (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0);
