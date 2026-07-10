@@ -36,6 +36,8 @@
   .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;}
   .login-box{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px 22px;}
   .login-box .form select, .login-box .form input{font-size:14.5px;}
+  .login-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);
+    margin:0 auto;animation:spin .7s linear infinite;}
 
   main{max-width:640px;margin:0 auto;padding:0 16px;}
 
@@ -182,18 +184,26 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <div class="brand" style="justify-content:center;margin-bottom:4px;"><span class="dot"></span><h1>VITAL</h1></div>
-    <p style="color:var(--text-muted);font-size:12.5px;text-align:center;margin:0 0 20px;">Selecciona el teu usuari per continuar</p>
-    <div class="form">
-      <label>Usuari</label>
-      <select id="loginUser">
-        <option value="">Tria un usuari...</option>
-        <option value="COME">Come</option>
-        <option value="JUDITH">Judith</option>
-      </select>
-      <label>Contrasenya</label>
-      <input id="loginPassword" type="password" placeholder="Contrasenya">
-      <button class="submit" onclick="doLogin()">Entrar</button>
-      <div id="loginError" style="color:var(--alert);font-size:12px;margin-top:10px;text-align:center;display:none;">Usuari o contrasenya incorrectes</div>
+
+    <div id="loginFormWrap">
+      <p style="color:var(--text-muted);font-size:12.5px;text-align:center;margin:0 0 20px;">Selecciona el teu usuari per continuar</p>
+      <div class="form">
+        <label>Usuari</label>
+        <select id="loginUser">
+          <option value="">Tria un usuari...</option>
+          <option value="COME">Come</option>
+          <option value="JUDITH">Judith</option>
+        </select>
+        <label>Contrasenya</label>
+        <input id="loginPassword" type="password" placeholder="Contrasenya">
+        <button class="submit" onclick="doLogin()">Entrar</button>
+        <div id="loginError" style="color:var(--alert);font-size:12px;margin-top:10px;text-align:center;display:none;">Usuari o contrasenya incorrectes</div>
+      </div>
+    </div>
+
+    <div id="loginLoading" style="display:none;text-align:center;padding:20px 0;">
+      <div class="login-spinner"></div>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:14px;">Carregant dades de <span id="loginLoadingUser"></span>...</p>
     </div>
   </div>
 </div>
@@ -1545,9 +1555,17 @@ async function doLogin(){
   errEl.style.display = "none";
   API_URL = USER_API_URLS[user];
   localStorage.setItem(LOGIN_STORAGE_KEY, user);
+
+  document.getElementById("loginFormWrap").style.display = "none";
+  document.getElementById("loginLoadingUser").textContent = user.charAt(0) + user.slice(1).toLowerCase();
+  document.getElementById("loginLoading").style.display = "block";
+
+  await loadAll();
+
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("appRoot").style.display = "block";
-  await loadAll();
+  document.getElementById("loginLoading").style.display = "none";
+  document.getElementById("loginFormWrap").style.display = "block";
 }
 function doLogout(){
   API_URL = "";
