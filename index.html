@@ -33,6 +33,10 @@
   .admin-btn{width:34px;height:34px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:15px;display:flex;align-items:center;justify-content:center;}
   .admin-btn:active{border-color:var(--accent);}
 
+  .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-box{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px 22px;}
+  .login-box .form select, .login-box .form input{font-size:14.5px;}
+
   main{max-width:640px;margin:0 auto;padding:0 16px;}
 
   /* ---- Setmana / stamp strip ---- */
@@ -174,11 +178,34 @@
 </head>
 <body>
 
+<!-- ===== PANTALLA DE LOGIN ===== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="brand" style="justify-content:center;margin-bottom:4px;"><span class="dot"></span><h1>VITAL</h1></div>
+    <p style="color:var(--text-muted);font-size:12.5px;text-align:center;margin:0 0 20px;">Selecciona el teu usuari per continuar</p>
+    <div class="form">
+      <label>Usuari</label>
+      <select id="loginUser">
+        <option value="">Tria un usuari...</option>
+        <option value="COME">Come</option>
+        <option value="JUDITH">Judith</option>
+      </select>
+      <label>Contrasenya</label>
+      <input id="loginPassword" type="password" placeholder="Contrasenya">
+      <button class="submit" onclick="doLogin()">Entrar</button>
+      <div id="loginError" style="color:var(--alert);font-size:12px;margin-top:10px;text-align:center;display:none;">Usuari o contrasenya incorrectes</div>
+    </div>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
 <header class="top">
   <div class="brand"><span class="dot"></span><h1>VITAL</h1></div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="streak">🔥 <span id="streakNum">0</span> dies</div>
     <button class="admin-btn" onclick="showAdminPage()" title="Admin">⚙️</button>
+    <button class="admin-btn" onclick="doLogout()" title="Canviar d'usuari">👤</button>
   </div>
 </header>
 
@@ -419,9 +446,16 @@
   </svg>
 </button>
 
+</div><!-- /appRoot -->
+
 <script>
 /* ============ CONFIG ============ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxXFjP2tvE65qf9q7u1xswByRyEgOef_pI1i0FcQFfUmgo3N2--u9BQvVkX919wxtLMFw/exec";
+const USER_API_URLS = {
+  "COME": "https://script.google.com/macros/s/AKfycbxXFjP2tvE65qf9q7u1xswByRyEgOef_pI1i0FcQFfUmgo3N2--u9BQvVkX919wxtLMFw/exec",
+  "JUDITH": "https://script.google.com/macros/s/AKfycbzPBoyxKWUvSh_GZCH1jTvLx76NxDbkIkz6yXWVhYj5sed9RjR5CYT1wIkC5R8UplmV/exec"
+};
+const APP_PASSWORD = "vital2026";
+let API_URL = "";
 
 /* ============ STATE ============ */
 let STATE = { tasques: [], registre: [], entrenos: [], apats: [], mesures: [], rutinesMati: [] };
@@ -1484,8 +1518,46 @@ function drawChart(canvasId, type, labels, datasets){
   });
 }
 
+/* ============ LOGIN ============ */
+const LOGIN_STORAGE_KEY = "vital_last_user";
+
+function initLogin(){
+  const lastUser = localStorage.getItem(LOGIN_STORAGE_KEY);
+  if(lastUser && USER_API_URLS[lastUser]){
+    document.getElementById("loginUser").value = lastUser;
+  }
+}
+async function doLogin(){
+  const user = document.getElementById("loginUser").value;
+  const pwd = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  if(!user || !USER_API_URLS[user] || USER_API_URLS[user].startsWith("ENGANXA")){
+    errEl.textContent = "Tria un usuari vàlid";
+    errEl.style.display = "block";
+    return;
+  }
+  if(pwd !== APP_PASSWORD){
+    errEl.textContent = "Contrasenya incorrecta";
+    errEl.style.display = "block";
+    return;
+  }
+  errEl.style.display = "none";
+  API_URL = USER_API_URLS[user];
+  localStorage.setItem(LOGIN_STORAGE_KEY, user);
+  document.getElementById("loginOverlay").style.display = "none";
+  document.getElementById("appRoot").style.display = "block";
+  await loadAll();
+}
+function doLogout(){
+  API_URL = "";
+  document.getElementById("appRoot").style.display = "none";
+  document.getElementById("loginOverlay").style.display = "flex";
+  document.getElementById("loginPassword").value = "";
+}
+document.getElementById("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
 /* ============ INIT ============ */
-loadAll();
+initLogin();
 
 /* ============ REFRESC MANUAL ============ */
 document.getElementById("fabRefresh").addEventListener("click", async ()=>{
