@@ -464,14 +464,15 @@ const DIES_CODI = ["D","L","M","X","J","V","S"]; // getDay(): 0=diumenge
 
 /* ============ API ============ */
 async function apiGet(action, params={}){
-  const qs = new URLSearchParams({action, ...params}).toString();
-  const res = await fetch(`${API_URL}?${qs}`);
+  const qs = new URLSearchParams({action, _ts:Date.now(), ...params}).toString();
+  const res = await fetch(`${API_URL}?${qs}`, {cache:"no-store"});
   return res.json();
 }
 async function apiPost(action, body={}){
   // text/plain evita el preflight CORS amb Apps Script
   const res = await fetch(API_URL, {
     method:"POST",
+    cache:"no-store",
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action, ...body})
   });
