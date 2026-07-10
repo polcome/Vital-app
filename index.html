@@ -822,18 +822,21 @@ function renderApatsDayPanel(dStr){
       return `<div class="row"><span class="k">✓ ${r.Nom}</span><span class="v" style="font-size:11px;">${badge}</span></div>`;
     }).join("")}</div>` : "";
 
+  const ORDRE_APATS = ["Esmorzar","Dinar","Sopar","Snack"];
   const inner = items.length
-    ? `<div class="log-subtitle">Registrat (${items.length})</div>` + items.map(a=>`<div class="card">
-        <div class="card-head">
-          <span class="k">${a.Apat}</span>
-          ${a.ID?`<div class="icon-row">
-            <div class="icon-btn" onclick="startEditApat('${a.ID}')">✎</div>
-            <div class="icon-btn danger" onclick="eliminarApatClick('${a.ID}')">🗑</div>
-          </div>`:''}
-        </div>
-        <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
-        ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
-      </div>`).join("")
+    ? `<div class="log-subtitle">Registrat (${items.length})</div>` + ORDRE_APATS.filter(tipus=>items.some(a=>a.Apat===tipus)).map(tipus=>{
+        const rows = items.filter(a=>a.Apat===tipus).map(a=>`<div class="card">
+          <div class="card-head">
+            <span class="k">${a.Descripcio}</span>
+            ${a.ID?`<div class="icon-row">
+              <div class="icon-btn" onclick="startEditApat('${a.ID}')">✎</div>
+              <div class="icon-btn danger" onclick="eliminarApatClick('${a.ID}')">🗑</div>
+            </div>`:''}
+          </div>
+          ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
+        </div>`).join("");
+        return `<div class="section-title" style="color:var(--purple);margin-top:14px;">${tipus}</div>${rows}`;
+      }).join("")
     : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
   const isEdit = !!editingItem;
   return `<div class="cal-expanded">
