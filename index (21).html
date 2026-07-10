@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vital — Seguiment diari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#14171a; --surface:#1c2024; --surface-2:#242a2f; --border:#33393e;
+    --text:#edebe6; --text-muted:#8f979d;
+    --accent:#8fb996; --accent-dim:#4f6b56;
+    --amber:#e8a652; --amber-dim:#7a5b30;
+    --alert:#b15e52;
+    --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;padding-bottom:70px;}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;}
+  .mono{font-family:var(--font-mono);}
+  button{font-family:var(--font-body);cursor:pointer;}
+
+  header.top{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 80%,transparent);padding:18px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
+  header.top .brand{display:flex;align-items:center;gap:8px;}
+  header.top .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  header.top h1{font-size:19px;letter-spacing:0.5px;}
+  .streak{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-family:var(--font-mono);font-size:13px;color:var(--amber);}
+
+  main{max-width:640px;margin:0 auto;padding:0 16px;}
+
+  /* ---- Setmana / stamp strip ---- */
+  .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0 18px;}
+  .day-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;cursor:pointer;transition:border-color .15s;}
+  .day-cell.today{border-color:var(--amber);}
+  .day-cell.selected{border-color:var(--accent);background:var(--surface-2);}
+  .day-cell .dname{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .day-cell .dnum{font-family:var(--font-mono);font-size:14px;margin:3px 0 5px;}
+  .stamp-dots{display:flex;justify-content:center;gap:3px;flex-wrap:wrap;}
+  .stamp-dots span{width:5px;height:5px;border-radius:50%;background:var(--border);}
+  .stamp-dots span.on{background:var(--accent);}
+
+  /* ---- nav tabs ---- */
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:30;}
+  nav.tabs button{background:none;border:none;color:var(--text-muted);font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;flex:1;}
+  nav.tabs button .ic{font-size:17px;}
+  nav.tabs button.active{color:var(--accent);}
+
+  .page{display:none;padding-top:4px;animation:fade .2s ease;}
+  .page.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .section-title{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 8px;}
+
+  .task-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+  .task-row .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;}
+  .task-row .check.done{background:var(--accent);border-color:var(--accent);color:#0f1210;font-weight:700;}
+  .task-row .body{flex:1;min-width:0;}
+  .task-row .name{font-size:14.5px;}
+  .task-row .name.done{color:var(--text-muted);text-decoration:line-through;}
+  .task-row input.note{width:100%;background:transparent;border:none;border-top:1px dashed var(--border);color:var(--text-muted);font-size:12px;padding-top:5px;margin-top:5px;outline:none;}
+  .task-row input.note::placeholder{color:#5c6368;}
+
+  .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
+  .card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
+  .card .row .k{color:var(--text-muted);}
+  .card .row .v{font-family:var(--font-mono);}
+
+  .form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:12px 0 20px;}
+  .form .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .form label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;}
+  .form input, .form select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 9px;font-size:13.5px;margin-bottom:8px;outline:none;font-family:var(--font-body);}
+  .form input:focus, .form select:focus{border-color:var(--accent);}
+  .form button.submit{width:100%;background:var(--accent);border:none;border-radius:7px;padding:10px;color:#10140f;font-weight:600;font-size:13.5px;margin-top:2px;}
+
+  .datebar{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;}
+  .datebar .lbl{font-family:var(--font-display);font-size:16px;}
+  .datebar .nav-btn{background:var(--surface);border:1px solid var(--border);width:32px;height:32px;border-radius:50%;color:var(--text);font-size:15px;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+  .stat-box .num{font-family:var(--font-mono);font-size:24px;color:var(--accent);}
+  .stat-box .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;height:220px;}
+
+  .rangebar{display:flex;gap:6px;margin:12px 0;}
+  .rangebar button{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text-muted);}
+  .rangebar button.active{color:var(--bg);background:var(--accent);border-color:var(--accent);}
+
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--accent);color:var(--text);padding:8px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:50;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="dot"></span><h1>VITAL</h1></div>
+  <div class="streak">🔥 <span id="streakNum">0</span> dies</div>
+</header>
+
+<main>
+
+  <!-- ===== PÀGINA: AVUI ===== -->
+  <section class="page active" id="page-avui">
+    <div class="week-strip" id="weekStrip"></div>
+    <div class="datebar">
+      <button class="nav-btn" onclick="changeDay(-1)">‹</button>
+      <div class="lbl" id="dateLabel"></div>
+      <button class="nav-btn" onclick="changeDay(1)">›</button>
+    </div>
+    <div id="avuiContent"></div>
+  </section>
+
+  <!-- ===== PÀGINA: EXERCICI MATINAL ===== -->
+  <section class="page" id="page-matinal">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Exercici matinal</h2>
+    <p style="color:var(--text-muted);font-size:12.5px;margin:0 0 10px;">Últims 14 dies</p>
+    <div id="matinalList"></div>
+  </section>
+
+  <!-- ===== PÀGINA: ÀPATS ===== -->
+  <section class="page" id="page-apats">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Àpats / Dieta</h2>
+    <div class="form">
+      <label>Àpat</label>
+      <select id="apatTipus"><option>Esmorzar</option><option>Dinar</option><option>Sopar</option><option>Snack</option></select>
+      <label>Descripció</label>
+      <input id="apatDesc" placeholder="Què has menjat...">
+      <label>Nota (opcional)</label>
+      <input id="apatNota" placeholder="Sensacions, quantitat...">
+      <button class="submit" onclick="afegirApat()">Afegir àpat d'avui</button>
+    </div>
+    <div class="section-title">Historial recent</div>
+    <div id="apatsList"></div>
+  </section>
+
+  <!-- ===== PÀGINA: GIMNÀS ===== -->
+  <section class="page" id="page-gimnas">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Gimnàs / Entreno</h2>
+    <div class="form">
+      <div class="grid">
+        <div><label>Exercici</label><input id="entExercici" placeholder="Press banca"></div>
+        <div><label>Pes (kg)</label><input id="entPes" type="number" step="0.5"></div>
+        <div><label>Sèries</label><input id="entSeries" type="number"></div>
+        <div><label>Reps</label><input id="entReps" type="number"></div>
+      </div>
+      <label>Nota (opcional)</label>
+      <input id="entNota" placeholder="RPE, sensacions...">
+      <button class="submit" onclick="afegirEntreno()">Afegir sèrie d'avui</button>
+    </div>
+    <div class="section-title">Historial recent</div>
+    <div id="entrenosList"></div>
+  </section>
+
+  <!-- ===== PÀGINA: RUTINES ===== -->
+  <section class="page" id="page-rutines">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Rutines / Hàbits</h2>
+    <p style="color:var(--text-muted);font-size:12.5px;margin:0 0 10px;">Últims 14 dies</p>
+    <div id="rutinesList"></div>
+  </section>
+
+  <!-- ===== PÀGINA: ESTADÍSTIQUES ===== -->
+  <section class="page" id="page-stats">
+    <h2 style="font-size:18px;margin:14px 0 4px;">Estadístiques</h2>
+    <div class="rangebar" id="rangeBar">
+      <button data-r="7" class="active">7 dies</button>
+      <button data-r="30">30 dies</button>
+      <button data-r="90">90 dies</button>
+      <button data-r="365">Any</button>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="statCompliment">–</div><div class="lbl">% compliment global</div></div>
+      <div class="stat-box"><div class="num" id="statStreak">–</div><div class="lbl">Ratxa actual (dies)</div></div>
+    </div>
+    <div class="section-title">Compliment per dia</div>
+    <div class="chart-wrap"><canvas id="chartCompliment"></canvas></div>
+    <div class="section-title">Evolució física (pes)</div>
+    <div class="chart-wrap"><canvas id="chartPes"></canvas></div>
+    <div class="section-title">Volum d'entreno per exercici</div>
+    <div class="chart-wrap"><canvas id="chartVolum"></canvas></div>
+  </section>
+
+</main>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-page="avui"><span class="ic">📅</span>Avui</button>
+  <button class="tab-btn" data-page="matinal"><span class="ic">🌅</span>Matí</button>
+  <button class="tab-btn" data-page="apats"><span class="ic">🍽️</span>Àpats</button>
+  <button class="tab-btn" data-page="gimnas"><span class="ic">🏋️</span>Gimnàs</button>
+  <button class="tab-btn" data-page="rutines"><span class="ic">✅</span>Rutines</button>
+  <button class="tab-btn" data-page="stats"><span class="ic">📊</span>Stats</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const API_URL = "ENGANXA_AQUI_LA_URL_DEL_APPS_SCRIPT";
+
+/* ============ STATE ============ */
+let STATE = { tasques: [], registre: [], entrenos: [], apats: [], mesures: [] };
+let selectedDate = new Date();
+const DIES_CODI = ["D","L","M","X","J","V","S"]; // getDay(): 0=diumenge
+
+/* ============ API ============ */
+async function apiGet(action, params={}){
+  const qs = new URLSearchParams({action, ...params}).toString();
+  const res = await fetch(`${API_URL}?${qs}`);
+  return res.json();
+}
+async function apiPost(action, body={}){
+  // text/plain evita el preflight CORS amb Apps Script
+  const res = await fetch(API_URL, {
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify({action, ...body})
+  });
+  return res.json();
+}
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1600);
+}
+
+/* ============ HELPERS DATA ============ */
+function fmt(d){ // -> YYYY-MM-DD
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function diaCodi(d){ return DIES_CODI[d.getDay()]; }
+function tasquesActivesDia(d){
+  const codi = diaCodi(d);
+  return STATE.tasques.filter(t=>{
+    if(String(t.Actiu).toUpperCase()!=="TRUE") return false;
+    if(!t.Dies || t.Dies==="Diari") return true;
+    return t.Dies.split(",").map(s=>s.trim()).includes(codi);
+  }).sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
+}
+function registreDia(dataStr){
+  return STATE.registre.filter(r=>r.Data===dataStr);
+}
+function tasksByCategoria(cat, dataStr){
+  const d = new Date(dataStr+"T00:00:00");
+  return tasquesActivesDia(d).filter(t=>t.Categoria===cat);
+}
+
+/* ============ CÀRREGA ============ */
+async function loadAll(){
+  const r = await apiGet("tot");
+  if(!r.ok){ showToast("Error carregant dades"); return; }
+  STATE.tasques = r.tasques; STATE.registre = r.registre;
+  STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
+  renderAvui(); renderWeekStrip(); renderMatinal(); renderRutines();
+  renderApatsList(); renderEntrenosList(); computeStreak(); renderStats();
+}
+
+/* ============ NAV TABS ============ */
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("page-"+btn.dataset.page).classList.add("active");
+    if(btn.dataset.page==="stats") renderStats();
+  });
+});
+
+/* ============ PÀGINA AVUI ============ */
+function changeDay(delta){
+  selectedDate.setDate(selectedDate.getDate()+delta);
+  renderAvui(); renderWeekStrip();
+}
+function renderAvui(){
+  const dataStr = fmt(selectedDate);
+  const isToday = dataStr===fmt(new Date());
+  document.getElementById("dateLabel").textContent =
+    (isToday?"Avui · ":"") + selectedDate.toLocaleDateString("ca-ES",{weekday:'short',day:'numeric',month:'short'});
+
+  const tasques = tasquesActivesDia(selectedDate);
+  const reg = registreDia(dataStr);
+  const cats = [...new Set(tasques.map(t=>t.Categoria))];
+  const cont = document.getElementById("avuiContent");
+  if(tasques.length===0){ cont.innerHTML = `<div class="empty">Cap tasca planificada per aquest dia.</div>`; return; }
+
+  cont.innerHTML = cats.map(cat=>{
+    const rows = tasques.filter(t=>t.Categoria===cat).map(t=>{
+      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
+      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
+      const nota = rr ? (rr.Nota||"") : "";
+      return `
+      <div class="task-row" data-id="${t.ID}">
+        <div class="check ${fet?'done':''}" onclick="toggleTasca('${dataStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
+        <div class="body">
+          <div class="name ${fet?'done':''}">${t.Nom}</div>
+          <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
+            onchange="guardarNota('${dataStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="section-title">${cat}</div>${rows}`;
+  }).join("");
+}
+
+async function toggleTasca(dataStr, id, categoria, nom){
+  const reg = registreDia(dataStr);
+  const existent = reg.find(r=>String(r.ID_Tasca)===String(id));
+  const nouEstat = !(existent && String(existent.Fet).toUpperCase()==="TRUE");
+  const nota = existent ? existent.Nota : "";
+  // optimista
+  if(existent){ existent.Fet = nouEstat; }
+  else { STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:nouEstat, Nota:""}); }
+  renderAvui(); renderWeekStrip(); computeStreak();
+  await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet:nouEstat, nota});
+}
+async function guardarNota(dataStr, id, categoria, nom, valor){
+  const reg = registreDia(dataStr);
+  let existent = reg.find(r=>String(r.ID_Tasca)===String(id));
+  const fet = existent ? existent.Fet : false;
+  if(existent){ existent.Nota = valor; } else {
+    STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:fet, Nota:valor});
+  }
+  await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet, nota:valor});
+  showToast("Nota desada");
+}
+
+/* ============ WEEK STRIP (signatura visual) ============ */
+function renderWeekStrip(){
+  const el = document.getElementById("weekStrip");
+  const base = new Date(selectedDate);
+  base.setDate(base.getDate() - base.getDay() + 1); // dilluns de la setmana
+  const todayStr = fmt(new Date());
+  let html = "";
+  for(let i=0;i<7;i++){
+    const d = new Date(base); d.setDate(base.getDate()+i);
+    const dStr = fmt(d);
+    const tasques = tasquesActivesDia(d);
+    const cats = [...new Set(tasques.map(t=>t.Categoria))];
+    const reg = registreDia(dStr);
+    const dots = cats.map(cat=>{
+      const catTasks = tasques.filter(t=>t.Categoria===cat);
+      const fetes = catTasks.filter(t=> reg.some(r=>String(r.ID_Tasca)===String(t.ID) && String(r.Fet).toUpperCase()==="TRUE"));
+      return `<span class="${fetes.length===catTasks.length && catTasks.length>0?'on':''}"></span>`;
+    }).join("");
+    html += `<div class="day-cell ${dStr===todayStr?'today':''} ${dStr===fmt(selectedDate)?'selected':''}" onclick="selectDate('${dStr}')">
+      <div class="dname">${d.toLocaleDateString('ca-ES',{weekday:'short'})}</div>
+      <div class="dnum">${d.getDate()}</div>
+      <div class="stamp-dots">${dots || '<span></span>'}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+function selectDate(dStr){ selectedDate = new Date(dStr+"T00:00:00"); renderAvui(); renderWeekStrip(); }
+
+/* ============ MATINAL / RUTINES (llista 14 dies) ============ */
+function renderCategoriaHistoric(containerId, categoria){
+  const cont = document.getElementById(containerId);
+  const dies = [];
+  for(let i=0;i<14;i++){ const d=new Date(); d.setDate(d.getDate()-i); dies.push(d); }
+  let html = "";
+  dies.forEach(d=>{
+    const dStr = fmt(d);
+    const tasques = tasksByCategoria(categoria, dStr);
+    if(tasques.length===0) return;
+    const reg = registreDia(dStr);
+    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+    html += `<div class="card"><div class="row"><span class="k">${d.toLocaleDateString('ca-ES',{weekday:'short',day:'numeric',month:'short'})}</span>
+      <span class="v" style="color:${fetes===tasques.length?'var(--accent)':'var(--text-muted)'}">${fetes}/${tasques.length}</span></div></div>`;
+  });
+  cont.innerHTML = html || `<div class="empty">Encara no hi ha dades.</div>`;
+}
+function renderMatinal(){ renderCategoriaHistoric("matinalList","Exercici matinal"); }
+function renderRutines(){ renderCategoriaHistoric("rutinesList","Rutines"); }
+
+/* ============ ÀPATS ============ */
+async function afegirApat(){
+  const body = {
+    data: fmt(new Date()),
+    apat: document.getElementById("apatTipus").value,
+    descripcio: document.getElementById("apatDesc").value,
+    nota: document.getElementById("apatNota").value
+  };
+  if(!body.descripcio){ showToast("Escriu una descripció"); return; }
+  STATE.apats.unshift(body);
+  document.getElementById("apatDesc").value=""; document.getElementById("apatNota").value="";
+  renderApatsList();
+  await apiPost("afegirApat", body);
+  showToast("Àpat afegit");
+}
+function renderApatsList(){
+  const cont = document.getElementById("apatsList");
+  const items = [...STATE.apats].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,20);
+  cont.innerHTML = items.map(a=>`<div class="card">
+    <div class="row"><span class="k">${a.Apat} · ${a.Data}</span></div>
+    <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
+    ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
+  </div>`).join("") || `<div class="empty">Encara no hi ha àpats registrats.</div>`;
+}
+
+/* ============ GIMNÀS ============ */
+async function afegirEntreno(){
+  const body = {
+    data: fmt(new Date()),
+    exercici: document.getElementById("entExercici").value,
+    pes: document.getElementById("entPes").value,
+    series: document.getElementById("entSeries").value,
+    reps: document.getElementById("entReps").value,
+    nota: document.getElementById("entNota").value
+  };
+  if(!body.exercici){ showToast("Escriu l'exercici"); return; }
+  STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota});
+  ["entExercici","entPes","entSeries","entReps","entNota"].forEach(id=>document.getElementById(id).value="");
+  renderEntrenosList();
+  await apiPost("afegirEntreno", body);
+  showToast("Sèrie afegida");
+}
+function renderEntrenosList(){
+  const cont = document.getElementById("entrenosList");
+  const items = [...STATE.entrenos].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,20);
+  cont.innerHTML = items.map(e=>`<div class="card">
+    <div class="row"><span class="k">${e.Exercici}</span><span class="v">${e.Data}</span></div>
+    <div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
+    <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
+  </div>`).join("") || `<div class="empty">Encara no hi ha entrenos registrats.</div>`;
+}
+
+/* ============ STREAK ============ */
+function computeStreak(){
+  let streak = 0;
+  let d = new Date();
+  while(true){
+    const dStr = fmt(d);
+    const tasques = tasquesActivesDia(d);
+    if(tasques.length===0){ d.setDate(d.getDate()-1); continue; } // dia sense tasques no trenca ratxa
+    const reg = registreDia(dStr);
+    const totes = tasques.every(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE"));
+    if(!totes) break;
+    streak++;
+    d.setDate(d.getDate()-1);
+  }
+  document.getElementById("streakNum").textContent = streak;
+}
+
+/* ============ ESTADÍSTIQUES ============ */
+let currentRange = 7;
+let charts = {};
+document.getElementById("rangeBar").addEventListener("click", e=>{
+  if(e.target.tagName!=="BUTTON") return;
+  document.querySelectorAll("#rangeBar button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  currentRange = Number(e.target.dataset.r);
+  renderStats();
+});
+
+function renderStats(){
+  const dies = [];
+  for(let i=currentRange-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); dies.push(d); }
+
+  let totalTasques=0, totalFetes=0;
+  const complimentPerDia = dies.map(d=>{
+    const dStr = fmt(d);
+    const tasques = tasquesActivesDia(d);
+    const reg = registreDia(dStr);
+    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+    totalTasques += tasques.length; totalFetes += fetes;
+    return tasques.length ? Math.round((fetes/tasques.length)*100) : null;
+  });
+  document.getElementById("statCompliment").textContent = totalTasques ? Math.round((totalFetes/totalTasques)*100)+"%" : "–";
+  document.getElementById("statStreak").textContent = document.getElementById("streakNum").textContent;
+
+  drawChart("chartCompliment","line", dies.map(d=>d.toLocaleDateString('ca-ES',{day:'numeric',month:'numeric'})),
+    [{label:"% compliment", data:complimentPerDia, borderColor:"#8fb996", backgroundColor:"rgba(143,185,150,.15)", fill:true, tension:.3}]);
+
+  const mesuresRang = STATE.mesures.filter(m=>m.Data>=fmt(dies[0])).sort((a,b)=>a.Data.localeCompare(b.Data));
+  drawChart("chartPes","line", mesuresRang.map(m=>m.Data.slice(5)),
+    [{label:"Pes (kg)", data:mesuresRang.map(m=>Number(m.Pes_kg)), borderColor:"#e8a652", backgroundColor:"rgba(232,166,82,.15)", fill:true, tension:.3}]);
+
+  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=fmt(dies[0]));
+  const volumPerExercici = {};
+  entrenosRang.forEach(e=>{
+    const vol = (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0);
+    volumPerExercici[e.Exercici] = (volumPerExercici[e.Exercici]||0) + vol;
+  });
+  const labelsV = Object.keys(volumPerExercici);
+  drawChart("chartVolum","bar", labelsV, [{label:"Volum (kg)", data:labelsV.map(k=>volumPerExercici[k]), backgroundColor:"#8fb996"}]);
+}
+
+function drawChart(canvasId, type, labels, datasets){
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  if(charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId] = new Chart(ctx, {
+    type, data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}},
+        y:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}}
+      }
+    }
+  });
+}
+
+/* ============ INIT ============ */
+loadAll();
+</script>
+</body>
+</html>
