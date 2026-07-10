@@ -93,6 +93,13 @@
 
   .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--accent);color:var(--text);padding:8px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:50;}
   .toast.show{opacity:1;}
+
+  .fab-refresh{position:fixed;right:16px;bottom:76px;z-index:40;width:44px;height:44px;border-radius:50%;
+    background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(143,185,150,.35);}
+  .fab-refresh svg{width:20px;height:20px;stroke:#0f1210;transition:transform .5s ease;}
+  .fab-refresh.spinning svg{animation:spin .6s linear infinite;}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -196,6 +203,13 @@
 </nav>
 
 <div class="toast" id="toast"></div>
+
+<button class="fab-refresh" id="fabRefresh" title="Refrescar dades">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </svg>
+</button>
 
 <script>
 /* ============ CONFIG ============ */
@@ -509,6 +523,21 @@ function drawChart(canvasId, type, labels, datasets){
 
 /* ============ INIT ============ */
 loadAll();
+
+/* ============ REFRESC MANUAL ============ */
+document.getElementById("fabRefresh").addEventListener("click", async ()=>{
+  const btn = document.getElementById("fabRefresh");
+  if(btn.classList.contains("spinning")) return; // evita doble clic mentre carrega
+  btn.classList.add("spinning");
+  try{
+    await loadAll();
+    showToast("Dades actualitzades");
+  }catch(err){
+    showToast("Error refrescant");
+  }finally{
+    btn.classList.remove("spinning");
+  }
+});
 </script>
 </body>
 </html>
