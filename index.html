@@ -28,6 +28,8 @@
   header.top .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
   header.top h1{font-size:19px;letter-spacing:0.5px;}
   .streak{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-family:var(--font-mono);font-size:13px;color:var(--amber);}
+  .admin-btn{width:34px;height:34px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:15px;display:flex;align-items:center;justify-content:center;}
+  .admin-btn:active{border-color:var(--accent);}
 
   main{max-width:640px;margin:0 auto;padding:0 16px;}
 
@@ -92,12 +94,30 @@
   .card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
   .card .row .k{color:var(--text-muted);}
   .card .row .v{font-family:var(--font-mono);}
+  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .icon-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+  .icon-btn:active{border-color:var(--accent);color:var(--accent);}
+  .icon-btn.danger:active{border-color:var(--alert);color:var(--alert);}
+  .icon-row{display:flex;gap:6px;}
+
+  /* ---- Admin ---- */
+  .subtabs{display:flex;gap:6px;margin:4px 0 16px;overflow-x:auto;}
+  .subtabs button{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12.5px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;}
+  .subtabs button.active{color:var(--bg);background:var(--accent);border-color:var(--accent);}
+  .admin-section{display:none;}
+  .admin-section.active{display:block;}
 
   .log-subtitle{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:2px 0 10px;}
 
   .add-box{margin-top:18px;border:1.5px dashed var(--accent-dim);border-radius:var(--radius);padding:14px;background:rgba(143,185,150,.05);}
-  .add-box-title{font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;letter-spacing:0.2px;}
-  .add-box-title .plus{width:16px;height:16px;border-radius:50%;background:var(--accent);color:#0f1210;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .add-box.editing{border-color:var(--amber-dim);background:rgba(232,166,82,.06);}
+  .add-box-title{font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;letter-spacing:0.2px;}
+  .add-box-title .label{display:flex;align-items:center;gap:6px;}
+  .add-box.editing .add-box-title{color:var(--amber);}
+  .add-box-title .plus{width:16px;height:16px;border-radius:50%;background:var(--accent);color:#0f1210;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+  .add-box.editing .add-box-title .plus{background:var(--amber);}
+  .cancel-link{font-size:11px;color:var(--text-muted);text-decoration:underline;cursor:pointer;font-weight:400;}
   .add-box .form{background:transparent;border:none;padding:0;margin:0;}
 
   .form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:12px 0 20px;}
@@ -141,7 +161,10 @@
 
 <header class="top">
   <div class="brand"><span class="dot"></span><h1>VITAL</h1></div>
-  <div class="streak">🔥 <span id="streakNum">0</span> dies</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="streak">🔥 <span id="streakNum">0</span> dies</div>
+    <button class="admin-btn" onclick="showAdminPage()" title="Admin">⚙️</button>
+  </div>
 </header>
 
 <main>
@@ -228,6 +251,88 @@
     <div class="chart-wrap"><canvas id="chartVolum"></canvas></div>
   </section>
 
+  <!-- ===== PÀGINA: ADMIN ===== -->
+  <section class="page" id="page-admin">
+    <div class="datebar">
+      <h2 style="font-size:18px;">Admin</h2>
+      <button class="nav-btn" style="width:auto;padding:0 14px;font-size:13px;" onclick="backFromAdmin()">‹ Tornar</button>
+    </div>
+    <div class="subtabs" id="adminSubtabs">
+      <button data-s="tasques" class="active">Tasques</button>
+      <button data-s="mesures">Mesures</button>
+      <button data-s="rutinesmati">Rutines matí</button>
+    </div>
+
+    <!-- -- TASQUES -- -->
+    <div class="admin-section active" id="admin-tasques">
+      <div class="add-box" id="tascaAddBox">
+        <div class="add-box-title"><span class="label"><span class="plus">+</span><span id="tascaFormTitle">Nova tasca</span></span>
+          <span class="cancel-link" id="tascaCancelLink" style="display:none;" onclick="cancelEditTasca()">Cancel·la</span></div>
+        <div class="form">
+          <label>Categoria</label>
+          <input id="tascaCategoria" placeholder="Exercici matinal / Àpats / Gimnàs / Rutines...">
+          <label>Nom</label>
+          <input id="tascaNom" placeholder="Nom de la tasca">
+          <label>Dies (Diari, o L,X,V)</label>
+          <input id="tascaDies" placeholder="Diari" value="Diari">
+          <label>Ordre</label>
+          <input id="tascaOrdre" type="number" placeholder="1">
+          <button class="submit" id="tascaSubmitBtn" onclick="guardarTasca()">Afegir tasca</button>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:18px;">Totes les tasques</div>
+      <div id="adminTasquesList"></div>
+    </div>
+
+    <!-- -- MESURES -- -->
+    <div class="admin-section" id="admin-mesures">
+      <div class="add-box">
+        <div class="add-box-title"><span class="label"><span class="plus">+</span>Nova mesura</span></div>
+        <div class="form">
+          <label>Data</label>
+          <input id="mesuraData" type="date">
+          <div class="grid">
+            <div><label>Pes (kg)</label><input id="mesuraPes" type="number" step="0.1"></div>
+            <div><label>Greix (%)</label><input id="mesuraGreix" type="number" step="0.1"></div>
+          </div>
+          <label>Cintura (cm)</label>
+          <input id="mesuraCintura" type="number" step="0.5">
+          <label>Nota (opcional)</label>
+          <input id="mesuraNota" placeholder="...">
+          <button class="submit" onclick="afegirMesuraAdmin()">Afegir mesura</button>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:18px;">Últimes mesures</div>
+      <div id="adminMesuresList"></div>
+    </div>
+
+    <!-- -- RUTINES MATÍ -- -->
+    <div class="admin-section" id="admin-rutinesmati">
+      <p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Primera versió: exercicis de mobilitat/estirament/hiit/abdominals per dia de la setmana. Encara no surten a la pàgina de Matí — ho connectarem després.</p>
+      <div class="add-box" id="rutinaAddBox">
+        <div class="add-box-title"><span class="label"><span class="plus">+</span><span id="rutinaFormTitle">Nou exercici</span></span>
+          <span class="cancel-link" id="rutinaCancelLink" style="display:none;" onclick="cancelEditRutina()">Cancel·la</span></div>
+        <div class="form">
+          <label>Dia</label>
+          <select id="rutinaDia">
+            <option>Diari</option><option>L</option><option>M</option><option>X</option><option>J</option><option>V</option><option>S</option><option>D</option>
+          </select>
+          <label>Nom de l'exercici</label>
+          <input id="rutinaNom" placeholder="Mobilitat de malucs">
+          <label>Tipus</label>
+          <select id="rutinaTipus"><option>Mobilitat</option><option>Estirament</option><option>HIIT</option><option>Abdominals</option><option>Altres</option></select>
+          <label>Durada (min)</label>
+          <input id="rutinaDurada" type="number">
+          <label>Ordre</label>
+          <input id="rutinaOrdre" type="number" placeholder="1">
+          <button class="submit" id="rutinaSubmitBtn" onclick="guardarRutina()">Afegir exercici</button>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:18px;">Tots els exercicis</div>
+      <div id="adminRutinesList"></div>
+    </div>
+  </section>
+
 </main>
 
 <nav class="tabs">
@@ -253,7 +358,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxXFjP2tvE65qf9q7u1xswByRyEgOef_pI1i0FcQFfUmgo3N2--u9BQvVkX919wxtLMFw/exec";
 
 /* ============ STATE ============ */
-let STATE = { tasques: [], registre: [], entrenos: [], apats: [], mesures: [] };
+let STATE = { tasques: [], registre: [], entrenos: [], apats: [], mesures: [], rutinesMati: [] };
 let selectedDate = new Date();
 const DIES_CODI = ["D","L","M","X","J","V","S"]; // getDay(): 0=diumenge
 
@@ -306,8 +411,10 @@ async function loadAll(){
   if(!r.ok){ showToast("Error carregant dades"); return; }
   STATE.tasques = r.tasques; STATE.registre = r.registre;
   STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
+  STATE.rutinesMati = r.rutinesMati || [];
   renderCalendar(); renderMatinalDetail(); renderRutinesDetail();
   renderApatsCalendar(); renderGimnasCalendar(); computeStreak(); renderStats();
+  renderAdminTasquesList(); renderAdminMesuresList(); renderAdminRutinesList();
 }
 
 /* ============ NAV TABS ============ */
@@ -326,7 +433,27 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
   });
 });
 
-/* ============ CALENDARI MENSUAL ============ */
+/* ============ ADMIN: navegació ============ */
+let lastActiveTabBeforeAdmin = "avui";
+function showAdminPage(){
+  const current = document.querySelector(".tab-btn.active");
+  if(current) lastActiveTabBeforeAdmin = current.dataset.page;
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("page-admin").classList.add("active");
+}
+function backFromAdmin(){
+  document.getElementById("page-admin").classList.remove("active");
+  const btn = document.querySelector(`.tab-btn[data-page="${lastActiveTabBeforeAdmin}"]`);
+  if(btn) btn.click(); else document.getElementById("page-avui").classList.add("active");
+}
+document.getElementById("adminSubtabs").addEventListener("click", e=>{
+  if(e.target.tagName!=="BUTTON") return;
+  document.querySelectorAll("#adminSubtabs button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));
+  e.target.classList.add("active");
+  document.getElementById("admin-"+e.target.dataset.s).classList.add("active");
+});
 let calMonth = new Date(); calMonth.setDate(1);
 let expandedDate = null;
 
@@ -538,34 +665,51 @@ function renderApatsCalendar(){
   document.getElementById("apatsCalTitle").textContent = title;
   document.getElementById("apatsCalGrid").innerHTML = html;
 }
+let apatEditingId = null;
+
+function selOpts(options, selected){
+  return options.map(o=>`<option ${o===selected?'selected':''}>${o}</option>`).join('');
+}
+
 function renderApatsDayPanel(dStr){
   const items = STATE.apats.filter(a=>a.Data===dStr);
   const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const editingItem = apatEditingId ? items.find(a=>String(a.ID)===String(apatEditingId)) : null;
   const inner = items.length
     ? `<div class="log-subtitle">Registrat (${items.length})</div>` + items.map(a=>`<div class="card">
-        <div class="row"><span class="k">${a.Apat}</span></div>
+        <div class="card-head">
+          <span class="k">${a.Apat}</span>
+          ${a.ID?`<div class="icon-row">
+            <div class="icon-btn" onclick="startEditApat('${a.ID}')">✎</div>
+            <div class="icon-btn danger" onclick="eliminarApatClick('${a.ID}')">🗑</div>
+          </div>`:''}
+        </div>
         <div style="font-size:13.5px;margin-top:3px;">${a.Descripcio}</div>
         ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
       </div>`).join("")
     : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
+  const isEdit = !!editingItem;
   return `<div class="cal-expanded">
     <div class="cal-expanded-title">${labelRaw}</div>
     ${inner}
-    <div class="add-box">
-      <div class="add-box-title"><span class="plus">+</span>Afegir a aquest dia</div>
+    <div class="add-box ${isEdit?'editing':''}">
+      <div class="add-box-title">
+        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant àpat':'Afegir a aquest dia'}</span>
+        ${isEdit?`<span class="cancel-link" onclick="cancelEditApat()">Cancel·la</span>`:''}
+      </div>
       <div class="form">
         <label>Àpat</label>
-        <select id="apatTipus_${dStr}"><option>Esmorzar</option><option>Dinar</option><option>Sopar</option><option>Snack</option></select>
+        <select id="apatTipus_${dStr}">${selOpts(['Esmorzar','Dinar','Sopar','Snack'], editingItem?editingItem.Apat:'Esmorzar')}</select>
         <label>Descripció</label>
-        <input id="apatDesc_${dStr}" placeholder="Què vas menjar...">
+        <input id="apatDesc_${dStr}" placeholder="Què vas menjar..." value="${editingItem?String(editingItem.Descripcio||'').replace(/"/g,'&quot;'):''}">
         <label>Nota (opcional)</label>
-        <input id="apatNota_${dStr}" placeholder="Sensacions, quantitat...">
-        <button class="submit" onclick="afegirApatDia('${dStr}')">Afegir</button>
+        <input id="apatNota_${dStr}" placeholder="Sensacions, quantitat..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
+        <button class="submit" onclick="guardarApatDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
       </div>
     </div>
   </div>`;
 }
-async function afegirApatDia(dStr){
+async function guardarApatDia(dStr){
   const body = {
     data: dStr,
     apat: document.getElementById(`apatTipus_${dStr}`).value,
@@ -573,10 +717,30 @@ async function afegirApatDia(dStr){
     nota: document.getElementById(`apatNota_${dStr}`).value
   };
   if(!body.descripcio){ showToast("Escriu una descripció"); return; }
-  STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota});
+  if(apatEditingId){
+    body.id = apatEditingId;
+    const idx = STATE.apats.findIndex(a=>String(a.ID)===String(apatEditingId));
+    if(idx>-1) STATE.apats[idx] = {ID:apatEditingId, Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota};
+    apatEditingId = null;
+    renderApatsCalendar();
+    await apiPost("editarApat", body);
+    showToast("Àpat actualitzat");
+  } else {
+    STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, ID:null});
+    renderApatsCalendar();
+    const r = await apiPost("afegirApat", body);
+    if(r && r.id && STATE.apats[0]) STATE.apats[0].ID = r.id;
+    showToast("Àpat afegit");
+  }
+}
+function startEditApat(id){ apatEditingId = id; renderApatsCalendar(); }
+function cancelEditApat(){ apatEditingId = null; renderApatsCalendar(); }
+async function eliminarApatClick(id){
+  if(!confirm("Segur que vols eliminar aquest àpat?")) return;
+  STATE.apats = STATE.apats.filter(a=>String(a.ID)!==String(id));
   renderApatsCalendar();
-  await apiPost("afegirApat", body);
-  showToast("Àpat afegit");
+  await apiPost("eliminarApat", {id});
+  showToast("Àpat eliminat");
 }
 
 /* ============ GIMNÀS ============ */
@@ -592,37 +756,50 @@ function renderGimnasCalendar(){
   document.getElementById("gimnasCalTitle").textContent = title;
   document.getElementById("gimnasCalGrid").innerHTML = html;
 }
+let gimnasEditingId = null;
+
 function renderGimnasDayPanel(dStr){
   const items = STATE.entrenos.filter(e=>e.Data===dStr);
   const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const editingItem = gimnasEditingId ? items.find(e=>String(e.ID)===String(gimnasEditingId)) : null;
   const inner = items.length
     ? `<div class="log-subtitle">Registrat (${items.length})</div>` + items.map(e=>`<div class="card">
-        <div class="row"><span class="k">${e.Exercici}</span></div>
+        <div class="card-head">
+          <span class="k">${e.Exercici}</span>
+          ${e.ID?`<div class="icon-row">
+            <div class="icon-btn" onclick="startEditEntreno('${e.ID}')">✎</div>
+            <div class="icon-btn danger" onclick="eliminarEntrenoClick('${e.ID}')">🗑</div>
+          </div>`:''}
+        </div>
         <div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
         <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>
         ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
       </div>`).join("")
     : `<div class="empty">Cap entreno registrat aquest dia.</div>`;
+  const isEdit = !!editingItem;
   return `<div class="cal-expanded">
     <div class="cal-expanded-title">${labelRaw}</div>
     ${inner}
-    <div class="add-box">
-      <div class="add-box-title"><span class="plus">+</span>Afegir a aquest dia</div>
+    <div class="add-box ${isEdit?'editing':''}">
+      <div class="add-box-title">
+        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant sèrie':'Afegir a aquest dia'}</span>
+        ${isEdit?`<span class="cancel-link" onclick="cancelEditEntreno()">Cancel·la</span>`:''}
+      </div>
       <div class="form">
         <div class="grid">
-          <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca"></div>
-          <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5"></div>
-          <div><label>Sèries</label><input id="entSeries_${dStr}" type="number"></div>
-          <div><label>Reps</label><input id="entReps_${dStr}" type="number"></div>
+          <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca" value="${editingItem?String(editingItem.Exercici||'').replace(/"/g,'&quot;'):''}"></div>
+          <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5" value="${editingItem?editingItem.Pes_kg||'':''}"></div>
+          <div><label>Sèries</label><input id="entSeries_${dStr}" type="number" value="${editingItem?editingItem.Series||'':''}"></div>
+          <div><label>Reps</label><input id="entReps_${dStr}" type="number" value="${editingItem?editingItem.Reps||'':''}"></div>
         </div>
         <label>Nota (opcional)</label>
-        <input id="entNota_${dStr}" placeholder="RPE, sensacions...">
-        <button class="submit" onclick="afegirEntrenoDia('${dStr}')">Afegir</button>
+        <input id="entNota_${dStr}" placeholder="RPE, sensacions..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
+        <button class="submit" onclick="guardarEntrenoDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
       </div>
     </div>
   </div>`;
 }
-async function afegirEntrenoDia(dStr){
+async function guardarEntrenoDia(dStr){
   const body = {
     data: dStr,
     exercici: document.getElementById(`entExercici_${dStr}`).value,
@@ -632,10 +809,221 @@ async function afegirEntrenoDia(dStr){
     nota: document.getElementById(`entNota_${dStr}`).value
   };
   if(!body.exercici){ showToast("Escriu l'exercici"); return; }
-  STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota});
+  if(gimnasEditingId){
+    body.id = gimnasEditingId;
+    const idx = STATE.entrenos.findIndex(e=>String(e.ID)===String(gimnasEditingId));
+    if(idx>-1) STATE.entrenos[idx] = {ID:gimnasEditingId, Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota};
+    gimnasEditingId = null;
+    renderGimnasCalendar();
+    await apiPost("editarEntreno", body);
+    showToast("Sèrie actualitzada");
+  } else {
+    STATE.entrenos.unshift({Data:body.data, Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Nota:body.nota, ID:null});
+    renderGimnasCalendar();
+    const r = await apiPost("afegirEntreno", body);
+    if(r && r.id && STATE.entrenos[0]) STATE.entrenos[0].ID = r.id;
+    showToast("Sèrie afegida");
+  }
+}
+function startEditEntreno(id){ gimnasEditingId = id; renderGimnasCalendar(); }
+function cancelEditEntreno(){ gimnasEditingId = null; renderGimnasCalendar(); }
+async function eliminarEntrenoClick(id){
+  if(!confirm("Segur que vols eliminar aquest entreno?")) return;
+  STATE.entrenos = STATE.entrenos.filter(e=>String(e.ID)!==String(id));
   renderGimnasCalendar();
-  await apiPost("afegirEntreno", body);
-  showToast("Sèrie afegida");
+  await apiPost("eliminarEntreno", {id});
+  showToast("Entreno eliminat");
+}
+
+/* ============ ADMIN: TASQUES ============ */
+let tascaEditingId = null;
+
+function omplirFormTasca(t){
+  document.getElementById("tascaCategoria").value = t ? t.Categoria : "";
+  document.getElementById("tascaNom").value = t ? t.Nom : "";
+  document.getElementById("tascaDies").value = t ? t.Dies : "Diari";
+  document.getElementById("tascaOrdre").value = t ? t.Ordre : "";
+}
+function startEditTasca(id){
+  const t = STATE.tasques.find(x=>String(x.ID)===String(id));
+  if(!t) return;
+  tascaEditingId = id;
+  omplirFormTasca(t);
+  document.getElementById("tascaFormTitle").textContent = "Editant tasca";
+  document.getElementById("tascaAddBox").classList.add("editing");
+  document.getElementById("tascaCancelLink").style.display = "inline";
+  document.getElementById("tascaSubmitBtn").textContent = "Desar canvis";
+  document.getElementById("tascaCategoria").scrollIntoView({behavior:"smooth", block:"center"});
+}
+function cancelEditTasca(){
+  tascaEditingId = null;
+  omplirFormTasca(null);
+  document.getElementById("tascaFormTitle").textContent = "Nova tasca";
+  document.getElementById("tascaAddBox").classList.remove("editing");
+  document.getElementById("tascaCancelLink").style.display = "none";
+  document.getElementById("tascaSubmitBtn").textContent = "Afegir tasca";
+}
+async function guardarTasca(){
+  const categoria = document.getElementById("tascaCategoria").value.trim();
+  const nom = document.getElementById("tascaNom").value.trim();
+  const dies = document.getElementById("tascaDies").value.trim() || "Diari";
+  const ordre = document.getElementById("tascaOrdre").value || 99;
+  if(!categoria || !nom){ showToast("Omple categoria i nom"); return; }
+
+  if(tascaEditingId){
+    const idx = STATE.tasques.findIndex(x=>String(x.ID)===String(tascaEditingId));
+    if(idx>-1) STATE.tasques[idx] = {...STATE.tasques[idx], Categoria:categoria, Nom:nom, Dies:dies, Ordre:ordre};
+    renderCalendar(); renderMatinalDetail(); renderRutinesDetail(); renderAdminTasquesList();
+    await apiPost("editarTasca", {id:tascaEditingId, categoria, nom, dies, actiu:true, ordre});
+    showToast("Tasca actualitzada");
+    cancelEditTasca();
+  } else {
+    STATE.tasques.push({ID:"tmp_"+Date.now(), Categoria:categoria, Nom:nom, Dies:dies, Actiu:true, Ordre:ordre});
+    renderAdminTasquesList();
+    const r = await apiPost("afegirTasca", {categoria, nom, dies, ordre});
+    await loadAll();
+    showToast("Tasca afegida");
+    omplirFormTasca(null);
+  }
+}
+async function eliminarTascaClick(id){
+  if(!confirm("Segur que vols eliminar aquesta tasca? S'esborrarà de la planificació (l'historial ja registrat es manté).")) return;
+  STATE.tasques = STATE.tasques.filter(x=>String(x.ID)!==String(id));
+  renderCalendar(); renderMatinalDetail(); renderRutinesDetail(); renderAdminTasquesList();
+  await apiPost("eliminarTasca", {id});
+  showToast("Tasca eliminada");
+}
+function renderAdminTasquesList(){
+  const cont = document.getElementById("adminTasquesList");
+  if(!cont) return;
+  if(!STATE.tasques.length){ cont.innerHTML = `<div class="empty">Encara no hi ha tasques.</div>`; return; }
+  const porCategoria = {};
+  STATE.tasques.forEach(t=>{ (porCategoria[t.Categoria] = porCategoria[t.Categoria]||[]).push(t); });
+  cont.innerHTML = Object.keys(porCategoria).map(cat=>{
+    const rows = porCategoria[cat].map(t=>`
+      <div class="card">
+        <div class="card-head">
+          <span style="font-size:14px;">${t.Nom}</span>
+          <div class="icon-row">
+            <div class="icon-btn" onclick="startEditTasca('${t.ID}')">✎</div>
+            <div class="icon-btn danger" onclick="eliminarTascaClick('${t.ID}')">🗑</div>
+          </div>
+        </div>
+        <div class="row"><span class="k">Dies</span><span class="v">${t.Dies}</span></div>
+        <div class="row"><span class="k">Activa</span><span class="v">${String(t.Actiu).toUpperCase()==="TRUE"?"Sí":"No"}</span></div>
+      </div>`).join("");
+    return `<div class="section-title">${cat}</div>${rows}`;
+  }).join("");
+}
+
+/* ============ ADMIN: MESURES ============ */
+async function afegirMesuraAdmin(){
+  const data = document.getElementById("mesuraData").value || fmt(new Date());
+  const body = {
+    data,
+    pes: document.getElementById("mesuraPes").value,
+    greix: document.getElementById("mesuraGreix").value,
+    cintura: document.getElementById("mesuraCintura").value,
+    nota: document.getElementById("mesuraNota").value
+  };
+  if(!body.pes){ showToast("Introdueix almenys el pes"); return; }
+  STATE.mesures.push({Data:body.data, Pes_kg:body.pes, Greix_pct:body.greix, Cintura_cm:body.cintura, Nota:body.nota});
+  ["mesuraPes","mesuraGreix","mesuraCintura","mesuraNota"].forEach(id=>document.getElementById(id).value="");
+  renderAdminMesuresList(); renderStats();
+  await apiPost("afegirMesura", body);
+  showToast("Mesura afegida");
+}
+function renderAdminMesuresList(){
+  const cont = document.getElementById("adminMesuresList");
+  if(!cont) return;
+  const items = [...STATE.mesures].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,15);
+  cont.innerHTML = items.length ? items.map(m=>`<div class="card">
+      <div class="row"><span class="k">${m.Data}</span><span class="v">${m.Pes_kg?m.Pes_kg+" kg":"–"}</span></div>
+      ${m.Greix_pct?`<div class="row"><span class="k">Greix</span><span class="v">${m.Greix_pct}%</span></div>`:""}
+      ${m.Cintura_cm?`<div class="row"><span class="k">Cintura</span><span class="v">${m.Cintura_cm} cm</span></div>`:""}
+    </div>`).join("") : `<div class="empty">Encara no hi ha mesures.</div>`;
+}
+
+/* ============ ADMIN: RUTINES MATINALS ============ */
+let rutinaEditingId = null;
+
+function omplirFormRutina(r){
+  document.getElementById("rutinaDia").value = r ? r.Dia : "Diari";
+  document.getElementById("rutinaNom").value = r ? r.Nom : "";
+  document.getElementById("rutinaTipus").value = r ? r.Tipus : "Mobilitat";
+  document.getElementById("rutinaDurada").value = r ? r.Durada_min : "";
+  document.getElementById("rutinaOrdre").value = r ? r.Ordre : "";
+}
+function startEditRutina(id){
+  const r = STATE.rutinesMati.find(x=>String(x.ID)===String(id));
+  if(!r) return;
+  rutinaEditingId = id;
+  omplirFormRutina(r);
+  document.getElementById("rutinaFormTitle").textContent = "Editant exercici";
+  document.getElementById("rutinaAddBox").classList.add("editing");
+  document.getElementById("rutinaCancelLink").style.display = "inline";
+  document.getElementById("rutinaSubmitBtn").textContent = "Desar canvis";
+}
+function cancelEditRutina(){
+  rutinaEditingId = null;
+  omplirFormRutina(null);
+  document.getElementById("rutinaFormTitle").textContent = "Nou exercici";
+  document.getElementById("rutinaAddBox").classList.remove("editing");
+  document.getElementById("rutinaCancelLink").style.display = "none";
+  document.getElementById("rutinaSubmitBtn").textContent = "Afegir exercici";
+}
+async function guardarRutina(){
+  const dia = document.getElementById("rutinaDia").value;
+  const nom = document.getElementById("rutinaNom").value.trim();
+  const tipus = document.getElementById("rutinaTipus").value;
+  const durada = document.getElementById("rutinaDurada").value;
+  const ordre = document.getElementById("rutinaOrdre").value || 99;
+  if(!nom){ showToast("Escriu el nom de l'exercici"); return; }
+
+  if(rutinaEditingId){
+    const idx = STATE.rutinesMati.findIndex(x=>String(x.ID)===String(rutinaEditingId));
+    if(idx>-1) STATE.rutinesMati[idx] = {...STATE.rutinesMati[idx], Dia:dia, Nom:nom, Tipus:tipus, Durada_min:durada, Ordre:ordre};
+    renderAdminRutinesList();
+    await apiPost("editarRutinaMati", {id:rutinaEditingId, dia, nom, tipus, durada, ordre, actiu:true});
+    showToast("Exercici actualitzat");
+    cancelEditRutina();
+  } else {
+    STATE.rutinesMati.push({ID:"tmp_"+Date.now(), Dia:dia, Nom:nom, Tipus:tipus, Durada_min:durada, Ordre:ordre, Actiu:true});
+    renderAdminRutinesList();
+    await apiPost("afegirRutinaMati", {dia, nom, tipus, durada, ordre});
+    await loadAll();
+    showToast("Exercici afegit");
+    omplirFormRutina(null);
+  }
+}
+async function eliminarRutinaClick(id){
+  if(!confirm("Segur que vols eliminar aquest exercici?")) return;
+  STATE.rutinesMati = STATE.rutinesMati.filter(x=>String(x.ID)!==String(id));
+  renderAdminRutinesList();
+  await apiPost("eliminarRutinaMati", {id});
+  showToast("Exercici eliminat");
+}
+function renderAdminRutinesList(){
+  const cont = document.getElementById("adminRutinesList");
+  if(!cont) return;
+  if(!STATE.rutinesMati.length){ cont.innerHTML = `<div class="empty">Encara no hi ha exercicis definits.</div>`; return; }
+  const porDia = {};
+  STATE.rutinesMati.forEach(r=>{ (porDia[r.Dia] = porDia[r.Dia]||[]).push(r); });
+  cont.innerHTML = Object.keys(porDia).map(dia=>{
+    const rows = porDia[dia].map(r=>`
+      <div class="card">
+        <div class="card-head">
+          <span style="font-size:14px;">${r.Nom}</span>
+          <div class="icon-row">
+            <div class="icon-btn" onclick="startEditRutina('${r.ID}')">✎</div>
+            <div class="icon-btn danger" onclick="eliminarRutinaClick('${r.ID}')">🗑</div>
+          </div>
+        </div>
+        <div class="row"><span class="k">Tipus</span><span class="v">${r.Tipus||"–"}</span></div>
+        <div class="row"><span class="k">Durada</span><span class="v">${r.Durada_min?r.Durada_min+" min":"–"}</span></div>
+      </div>`).join("");
+    return `<div class="section-title">Dia: ${dia}</div>${rows}`;
+  }).join("");
 }
 
 /* ============ STREAK ============ */
