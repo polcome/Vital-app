@@ -63,6 +63,25 @@
   .task-row input.note{width:100%;background:transparent;border:none;border-top:1px dashed var(--border);color:var(--text-muted);font-size:12px;padding-top:5px;margin-top:5px;outline:none;}
   .task-row input.note::placeholder{color:#5c6368;}
 
+  /* ---- Calendari mensual ---- */
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;}
+  .cal-title{font-family:var(--font-display);font-size:17px;text-transform:capitalize;}
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
+  .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
+  .cal-day{aspect-ratio:1/1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s,background .15s;}
+  .cal-day.outside{opacity:0.2;pointer-events:none;}
+  .cal-day.past{background:var(--surface-2);}
+  .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
+  .cal-day.expanded-sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .cal-day .dnum{font-family:var(--font-mono);font-size:13px;}
+  .cal-indicator{width:14px;height:4px;border-radius:2px;background:var(--border);}
+  .cal-indicator.full{background:var(--accent);}
+  .cal-indicator.partial{background:var(--amber);}
+  .cal-indicator.none{background:var(--alert);}
+  .cal-expanded{background:var(--surface-2);border:1px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:10px;animation:fade .2s ease;}
+  .cal-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:8px;color:var(--accent);text-transform:capitalize;}
+
   .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
@@ -111,15 +130,15 @@
 
 <main>
 
-  <!-- ===== PÀGINA: AVUI ===== -->
+  <!-- ===== PÀGINA: AVUI / CALENDARI ===== -->
   <section class="page active" id="page-avui">
-    <div class="week-strip" id="weekStrip"></div>
-    <div class="datebar">
-      <button class="nav-btn" onclick="changeDay(-1)">‹</button>
-      <div class="lbl" id="dateLabel"></div>
-      <button class="nav-btn" onclick="changeDay(1)">›</button>
+    <div class="cal-header">
+      <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="nav-btn" onclick="changeMonth(1)">›</button>
     </div>
-    <div id="avuiContent"></div>
+    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
+    <div id="calGrid"></div>
   </section>
 
   <!-- ===== PÀGINA: EXERCICI MATINAL ===== -->
@@ -269,7 +288,7 @@ async function loadAll(){
   if(!r.ok){ showToast("Error carregant dades"); return; }
   STATE.tasques = r.tasques; STATE.registre = r.registre;
   STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
-  renderAvui(); renderWeekStrip(); renderMatinal(); renderRutines();
+  renderCalendar(); renderMatinal(); renderRutines();
   renderApatsList(); renderEntrenosList(); computeStreak(); renderStats();
 }
 
@@ -284,40 +303,96 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
   });
 });
 
-/* ============ PÀGINA AVUI ============ */
-function changeDay(delta){
-  selectedDate.setDate(selectedDate.getDate()+delta);
-  renderAvui(); renderWeekStrip();
+/* ============ CALENDARI MENSUAL ============ */
+let calMonth = new Date(); calMonth.setDate(1);
+let expandedDate = null;
+
+function changeMonth(delta){
+  calMonth.setMonth(calMonth.getMonth()+delta);
+  renderCalendar();
 }
-function renderAvui(){
-  const dataStr = fmt(selectedDate);
-  const isToday = dataStr===fmt(new Date());
-  document.getElementById("dateLabel").textContent =
-    (isToday?"Avui · ":"") + selectedDate.toLocaleDateString("ca-ES",{weekday:'short',day:'numeric',month:'short'});
+function toggleExpand(dStr){
+  expandedDate = (expandedDate===dStr) ? null : dStr;
+  renderCalendar();
+}
+function diaStatus(dStr, todayStr){
+  if(dStr===todayStr) return "today";
+  return dStr < todayStr ? "past" : "future";
+}
+function renderCalendar(){
+  const titleRaw = calMonth.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
+  document.getElementById("calTitle").textContent = titleRaw.charAt(0).toUpperCase()+titleRaw.slice(1);
 
-  const tasques = tasquesActivesDia(selectedDate);
-  const reg = registreDia(dataStr);
-  const cats = [...new Set(tasques.map(t=>t.Categoria))];
-  const cont = document.getElementById("avuiContent");
-  if(tasques.length===0){ cont.innerHTML = `<div class="empty">Cap tasca planificada per aquest dia.</div>`; return; }
+  const year = calMonth.getFullYear(), month = calMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay()+6)%7; // 0=dilluns
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = fmt(new Date());
 
-  cont.innerHTML = cats.map(cat=>{
-    const rows = tasques.filter(t=>t.Categoria===cat).map(t=>{
-      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-      const nota = rr ? (rr.Nota||"") : "";
-      return `
-      <div class="task-row" data-id="${t.ID}">
-        <div class="check ${fet?'done':''}" onclick="toggleTasca('${dataStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
-        <div class="body">
-          <div class="name ${fet?'done':''}">${t.Nom}</div>
-          <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
-            onchange="guardarNota('${dataStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
-        </div>
+  let cells = [];
+  for(let i=startOffset;i>0;i--){ const d=new Date(year,month,1-i); cells.push({date:d, outside:true}); }
+  for(let day=1; day<=daysInMonth; day++){ cells.push({date:new Date(year,month,day), outside:false}); }
+  while(cells.length % 7 !== 0){ const last=cells[cells.length-1].date; const d=new Date(last); d.setDate(d.getDate()+1); cells.push({date:d, outside:true}); }
+
+  let html = "";
+  for(let w=0; w<cells.length/7; w++){
+    const weekCells = cells.slice(w*7, w*7+7);
+    html += `<div class="cal-week">`;
+    weekCells.forEach(c=>{
+      const dStr = fmt(c.date);
+      const tasques = tasquesActivesDia(c.date);
+      const reg = registreDia(dStr);
+      const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
+      let indClass = "";
+      if(tasques.length>0){ indClass = fetes===tasques.length ? "full" : (fetes>0 ? "partial" : "none"); }
+      const status = diaStatus(dStr, todayStr);
+      html += `<div class="cal-day ${status} ${c.outside?'outside':''} ${dStr===expandedDate?'expanded-sel':''}"
+        onclick="${c.outside?'':`toggleExpand('${dStr}')`}">
+        <div class="dnum">${c.date.getDate()}</div>
+        ${tasques.length>0?`<div class="cal-indicator ${indClass}"></div>`:''}
       </div>`;
+    });
+    html += `</div>`;
+    if(expandedDate && weekCells.some(c=>fmt(c.date)===expandedDate)){
+      html += renderExpandedPanel(expandedDate);
+    }
+  }
+  document.getElementById("calGrid").innerHTML = html;
+}
+
+function renderExpandedPanel(dStr){
+  const d = new Date(dStr+"T00:00:00");
+  const tasques = tasquesActivesDia(d);
+  const reg = registreDia(dStr);
+  const cats = [...new Set(tasques.map(t=>t.Categoria))];
+  const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  let inner;
+  if(tasques.length===0){
+    inner = `<div class="empty">Cap tasca planificada per aquest dia.</div>`;
+  } else {
+    inner = cats.map(cat=>{
+      const rows = tasques.filter(t=>t.Categoria===cat).map(t=>{
+        const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
+        const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
+        const nota = rr ? (rr.Nota||"") : "";
+        return `
+        <div class="task-row" data-id="${t.ID}">
+          <div class="check ${fet?'done':''}" onclick="toggleTasca('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}')">${fet?'✓':''}</div>
+          <div class="body">
+            <div class="name ${fet?'done':''}">${t.Nom}</div>
+            <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
+              onchange="guardarNota('${dStr}','${t.ID}','${cat}','${t.Nom.replace(/'/g,"\\'")}', this.value)">
+          </div>
+        </div>`;
+      }).join("");
+      return `<div class="section-title">${cat}</div>${rows}`;
     }).join("");
-    return `<div class="section-title">${cat}</div>${rows}`;
-  }).join("");
+  }
+  return `<div class="cal-expanded">
+    <div class="cal-expanded-title">${labelRaw}</div>
+    ${inner}
+  </div>`;
 }
 
 async function toggleTasca(dataStr, id, categoria, nom){
@@ -325,10 +400,9 @@ async function toggleTasca(dataStr, id, categoria, nom){
   const existent = reg.find(r=>String(r.ID_Tasca)===String(id));
   const nouEstat = !(existent && String(existent.Fet).toUpperCase()==="TRUE");
   const nota = existent ? existent.Nota : "";
-  // optimista
   if(existent){ existent.Fet = nouEstat; }
   else { STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:nouEstat, Nota:""}); }
-  renderAvui(); renderWeekStrip(); computeStreak();
+  renderCalendar(); computeStreak();
   await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet:nouEstat, nota});
 }
 async function guardarNota(dataStr, id, categoria, nom, valor){
@@ -341,34 +415,6 @@ async function guardarNota(dataStr, id, categoria, nom, valor){
   await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet, nota:valor});
   showToast("Nota desada");
 }
-
-/* ============ WEEK STRIP (signatura visual) ============ */
-function renderWeekStrip(){
-  const el = document.getElementById("weekStrip");
-  const base = new Date(selectedDate);
-  base.setDate(base.getDate() - base.getDay() + 1); // dilluns de la setmana
-  const todayStr = fmt(new Date());
-  let html = "";
-  for(let i=0;i<7;i++){
-    const d = new Date(base); d.setDate(base.getDate()+i);
-    const dStr = fmt(d);
-    const tasques = tasquesActivesDia(d);
-    const cats = [...new Set(tasques.map(t=>t.Categoria))];
-    const reg = registreDia(dStr);
-    const dots = cats.map(cat=>{
-      const catTasks = tasques.filter(t=>t.Categoria===cat);
-      const fetes = catTasks.filter(t=> reg.some(r=>String(r.ID_Tasca)===String(t.ID) && String(r.Fet).toUpperCase()==="TRUE"));
-      return `<span class="${fetes.length===catTasks.length && catTasks.length>0?'on':''}"></span>`;
-    }).join("");
-    html += `<div class="day-cell ${dStr===todayStr?'today':''} ${dStr===fmt(selectedDate)?'selected':''}" onclick="selectDate('${dStr}')">
-      <div class="dname">${d.toLocaleDateString('ca-ES',{weekday:'short'})}</div>
-      <div class="dnum">${d.getDate()}</div>
-      <div class="stamp-dots">${dots || '<span></span>'}</div>
-    </div>`;
-  }
-  el.innerHTML = html;
-}
-function selectDate(dStr){ selectedDate = new Date(dStr+"T00:00:00"); renderAvui(); renderWeekStrip(); }
 
 /* ============ MATINAL / RUTINES (llista 14 dies) ============ */
 function renderCategoriaHistoric(containerId, categoria){
