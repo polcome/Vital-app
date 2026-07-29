@@ -145,6 +145,8 @@
   .form .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .form label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;}
   .form input, .form select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 9px;font-size:13.5px;margin-bottom:8px;outline:none;font-family:var(--font-body);}
+  .form input[type="file"]{padding:7px;font-size:12px;color:var(--text-muted);}
+  .form input[type="file"]::file-selector-button{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;margin-right:8px;}
   .form input:focus, .form select:focus{border-color:var(--accent);}
   .form button.submit{width:100%;background:var(--accent);border:none;border-radius:7px;padding:10px;color:#10140f;font-weight:600;font-size:13.5px;margin-top:2px;}
 
@@ -883,11 +885,13 @@ function renderApatsDayPanel(dStr){
             </div>`:''}
           </div>
           ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
+          ${a.Foto?`<img src="${a.Foto}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-top:8px;">`:""}
         </div>`).join("");
         return `<div class="section-title" style="color:var(--purple);margin-top:14px;">${tipus}</div>${rows}`;
       }).join("")
     : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
   const isEdit = !!editingItem;
+  const previewSrc = editingItem && editingItem.Foto ? editingItem.Foto : "";
   return `<div class="cal-expanded">
     <div class="cal-expanded-title">${labelRaw}</div>
     ${checklistHtml}
@@ -904,10 +908,38 @@ function renderApatsDayPanel(dStr){
         <input id="apatDesc_${dStr}" placeholder="Què vas menjar..." value="${editingItem?String(editingItem.Descripcio||'').replace(/"/g,'&quot;'):''}">
         <label>Nota (opcional)</label>
         <input id="apatNota_${dStr}" placeholder="Sensacions, quantitat..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
+        <label>Foto (opcional)</label>
+        <input type="file" accept="image/*" id="apatFotoInput_${dStr}" onchange="previewApatFoto('${dStr}')">
+        <img id="apatFotoPreview_${dStr}" src="${previewSrc}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:8px 0;display:${previewSrc?'block':'none'};">
         <button class="submit" onclick="guardarApatDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
       </div>
     </div>
   </div>`;
+}
+let pendingApatFoto = {};
+function previewApatFoto(dStr){
+  const input = document.getElementById(`apatFotoInput_${dStr}`);
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxW = 1000;
+      const scale = Math.min(1, maxW/img.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width*scale;
+      canvas.height = img.height*scale;
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      pendingApatFoto[dStr] = dataUrl;
+      const prev = document.getElementById(`apatFotoPreview_${dStr}`);
+      prev.src = dataUrl;
+      prev.style.display = "block";
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 async function guardarApatDia(dStr){
   const body = {
@@ -916,21 +948,28 @@ async function guardarApatDia(dStr){
     descripcio: document.getElementById(`apatDesc_${dStr}`).value,
     nota: document.getElementById(`apatNota_${dStr}`).value
   };
+  if(pendingApatFoto[dStr]) body.foto = pendingApatFoto[dStr];
   if(!body.descripcio){ showToast("Escriu una descripció"); return; }
   if(apatEditingId){
     body.id = apatEditingId;
     const idx = STATE.apats.findIndex(a=>String(a.ID)===String(apatEditingId));
-    if(idx>-1) STATE.apats[idx] = {ID:apatEditingId, Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota};
+    const fotoPrevia = idx>-1 ? STATE.apats[idx].Foto : "";
+    if(idx>-1) STATE.apats[idx] = {ID:apatEditingId, Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, Foto:body.foto||fotoPrevia};
     apatEditingId = null;
+    delete pendingApatFoto[dStr];
     renderApatsCalendar();
-    await apiPost("editarApat", body);
-    showToast("Àpat actualitzat");
+    showToast(body.foto ? "Desant àpat i pujant foto..." : "Àpat actualitzat");
+    const r = await apiPost("editarApat", body);
+    if(r && r.foto){ const it=STATE.apats.find(a=>String(a.ID)===String(apatEditingId)); if(it) it.Foto=r.foto; renderApatsCalendar(); }
+    if(body.foto) showToast("Foto pujada ✅");
   } else {
-    STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, ID:null});
+    STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, ID:null, Foto:""});
+    delete pendingApatFoto[dStr];
     renderApatsCalendar();
+    showToast(body.foto ? "Desant àpat i pujant foto..." : "Àpat afegit");
     const r = await apiPost("afegirApat", body);
-    if(r && r.id && STATE.apats[0]) STATE.apats[0].ID = r.id;
-    showToast("Àpat afegit");
+    if(r && r.id && STATE.apats[0]){ STATE.apats[0].ID = r.id; if(r.foto) STATE.apats[0].Foto = r.foto; renderApatsCalendar(); }
+    if(body.foto) showToast("Foto pujada ✅"); else showToast("Àpat afegit");
   }
 }
 function startEditApat(id){ apatEditingId = id; renderApatsCalendar(); }
