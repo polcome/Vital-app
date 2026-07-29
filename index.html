@@ -475,10 +475,19 @@ let selectedDate = new Date();
 const DIES_CODI = ["D","L","M","X","J","V","S"]; // getDay(): 0=diumenge
 
 /* ============ API ============ */
+async function parseApiResponse(res){
+  const text = await res.text();
+  try{
+    return JSON.parse(text);
+  }catch(e){
+    console.error("Resposta no-JSON de l'API:", text.slice(0,300));
+    throw new Error("Resposta inesperada del servidor (potser cal reautoritzar l'Apps Script)");
+  }
+}
 async function apiGet(action, params={}){
   const qs = new URLSearchParams({action, _ts:Date.now(), ...params}).toString();
   const res = await fetch(`${API_URL}?${qs}`, {cache:"no-store"});
-  return res.json();
+  return parseApiResponse(res);
 }
 async function apiPost(action, body={}){
   // text/plain evita el preflight CORS amb Apps Script
@@ -488,7 +497,7 @@ async function apiPost(action, body={}){
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action, ...body})
   });
-  return res.json();
+  return parseApiResponse(res);
 }
 
 function showToast(msg){
@@ -530,7 +539,7 @@ function tasksByCategoria(cat, dataStr){
 /* ============ CÀRREGA ============ */
 async function loadAll(){
   const r = await apiGet("tot");
-  if(!r.ok){ showToast("Error carregant dades"); return; }
+  if(!r.ok){ throw new Error(r.error || "Error carregant dades"); }
   STATE.tasques = r.tasques; STATE.registre = r.registre;
   STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
   STATE.rutinesMati = r.rutinesMati || [];
@@ -1593,18 +1602,23 @@ async function doLogin(){
   }
   errEl.style.display = "none";
   API_URL = USER_API_URLS[user];
-  localStorage.setItem(LOGIN_STORAGE_KEY, user);
 
   document.getElementById("loginFormWrap").style.display = "none";
   document.getElementById("loginLoadingUser").textContent = user.charAt(0) + user.slice(1).toLowerCase();
   document.getElementById("loginLoading").style.display = "block";
 
-  await loadAll();
-
-  document.getElementById("loginOverlay").style.display = "none";
-  document.getElementById("appRoot").style.display = "block";
-  document.getElementById("loginLoading").style.display = "none";
-  document.getElementById("loginFormWrap").style.display = "block";
+  try{
+    await loadAll();
+    localStorage.setItem(LOGIN_STORAGE_KEY, user);
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("appRoot").style.display = "block";
+  } catch(err){
+    errEl.textContent = "No s'han pogut carregar les dades. Comprova la connexió o torna-ho a provar.";
+    errEl.style.display = "block";
+  } finally {
+    document.getElementById("loginLoading").style.display = "none";
+    document.getElementById("loginFormWrap").style.display = "block";
+  }
 }
 function doLogout(){
   API_URL = "";
