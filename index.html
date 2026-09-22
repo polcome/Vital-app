@@ -741,13 +741,15 @@ async function guardarActivitat(editId){
     const idx = STATE.activitats.findIndex(a=>String(a.ID)===String(editId));
     if(idx>-1) STATE.activitats[idx] = {...STATE.activitats[idx], Tipus:tipus, Nom:nom, DiesSetmana:diesSetmana, DataPuntual:dataPuntual, HoraInici:horaInici, HoraFi:horaFi, DuradaMin:body.duradaMin, Exercicis:body.exercicis, Kms:body.kms, Desnivell:body.desnivell, Notes:body.notes};
     renderCalendarView();
-    await apiPost("editarActivitat", body);
     showToast("Activitat actualitzada");
+    await apiPost("editarActivitat", body);
   } else {
+    const tempId = "tmp_"+Date.now();
+    STATE.activitats.push({ID:tempId, Tipus:tipus, Nom:nom, DiesSetmana:diesSetmana, DataPuntual:dataPuntual, HoraInici:horaInici, HoraFi:horaFi, DuradaMin:body.duradaMin, Exercicis:body.exercicis, Kms:body.kms, Desnivell:body.desnivell, Notes:body.notes, Actiu:true});
     renderCalendarView();
-    const r = await apiPost("afegirActivitat", body);
-    await loadAll();
     showToast("Activitat creada");
+    const r = await apiPost("afegirActivitat", body);
+    if(r && r.id){ const it=STATE.activitats.find(a=>a.ID===tempId); if(it) it.ID=r.id; }
   }
 }
 
