@@ -3,453 +3,238 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Vital — Seguiment diari</title>
+<title>Vital — Entrenaments</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#14171a; --surface:#1c2024; --surface-2:#242a2f; --border:#33393e;
-    --text:#edebe6; --text-muted:#8f979d;
-    --accent:#8fb996; --accent-dim:#4f6b56;
-    --amber:#e8a652; --amber-dim:#7a5b30;
-    --blue:#6fa8e0; --blue-dim:#3d5a7a;
-    --purple:#b98bd6; --purple-dim:#5c4770;
-    --alert:#b15e52;
+    --bg:#F7F8F5; --surface:#FFFFFF; --surface-2:#F0F2EC; --border:#E3E7DF;
+    --text:#20241F; --text-muted:#767F73;
+    --gym:#5CAE82; --gym-bg:#DDF0E5; --gym-text:#28744C;
+    --classe:#5C9FCB; --classe-bg:#DEEBF7; --classe-text:#295E86;
+    --exterior:#9B7BC4; --exterior-bg:#ECE3F7; --exterior-text:#63458F;
+    --missed:#D9776A; --missed-bg:#FBE4E0;
+    --amber:#DFA84E; --amber-bg:#FAEBD3;
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
-    --radius:10px;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(30,35,25,.05), 0 2px 8px rgba(30,35,25,.05);
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;padding-bottom:70px;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;padding-bottom:74px;}
   h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;}
   .mono{font-family:var(--font-mono);}
   button{font-family:var(--font-body);cursor:pointer;}
 
-  header.top{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 80%,transparent);padding:18px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
-  header.top .brand{display:flex;align-items:center;gap:8px;}
-  header.top .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
-  header.top h1{font-size:19px;letter-spacing:0.5px;}
-  .streak{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-family:var(--font-mono);font-size:13px;color:var(--amber);}
-  .admin-btn{width:34px;height:34px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:15px;display:flex;align-items:center;justify-content:center;}
-  .admin-btn:active{border-color:var(--accent);}
+  header.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:16px 16px 6px;display:flex;align-items:center;justify-content:space-between;}
+  header.top h1{font-size:18px;letter-spacing:0.3px;}
+  .btn-icon{width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text);}
+  .btn-icon:active{border-color:var(--gym);}
+  .btn-primary{background:var(--text);color:var(--surface);border:none;border-radius:12px;padding:9px 15px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:var(--shadow);}
+  .btn-primary:active{opacity:.85;}
+  .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:9px 15px;font-size:13px;font-weight:600;box-shadow:var(--shadow);}
 
-  .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;}
-  .login-box{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px 22px;}
-  .login-box .form select, .login-box .form input{font-size:14.5px;}
-  .login-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);
-    margin:0 auto;animation:spin .7s linear infinite;}
+  main{max-width:720px;margin:0 auto;padding:0 14px;}
 
-  main{max-width:640px;margin:0 auto;padding:0 16px;}
+  .seg-toggle{display:flex;background:var(--surface-2);border-radius:11px;padding:3px;gap:2px;}
+  .seg-toggle button{background:none;border:none;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--text-muted);}
+  .seg-toggle button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
 
-  /* ---- Setmana / stamp strip ---- */
-  .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0 18px;}
-  .day-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center;cursor:pointer;transition:border-color .15s;}
-  .day-cell.today{border-color:var(--amber);}
-  .day-cell.selected{border-color:var(--accent);background:var(--surface-2);}
-  .day-cell .dname{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
-  .day-cell .dnum{font-family:var(--font-mono);font-size:14px;margin:3px 0 5px;}
-  .stamp-dots{display:flex;justify-content:center;gap:3px;flex-wrap:wrap;}
-  .stamp-dots span{width:5px;height:5px;border-radius:50%;background:var(--border);}
-  .stamp-dots span.on{background:var(--accent);}
+  .cal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 10px;flex-wrap:wrap;}
+  .period-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0 14px;}
+  .period-nav .nav-btn{width:32px;height:32px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font-size:15px;display:flex;align-items:center;justify-content:center;}
+  .period-nav .nav-btn:active{border-color:var(--gym);color:var(--gym-text);}
+  .period-label{font-family:var(--font-display);font-size:15px;text-transform:capitalize;min-width:150px;text-align:center;}
 
-  /* ---- nav tabs ---- */
-  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:30;}
-  nav.tabs button{background:none;border:none;color:var(--text-muted);font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;flex:1;}
-  nav.tabs button .ic{font-size:17px;}
-  nav.tabs button.active{color:var(--accent);}
-
-  .page{display:none;padding-top:4px;animation:fade .2s ease;}
+  .page{display:none;}
   .page.active{display:block;}
-  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
-  .section-title{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 8px;}
+  .section-title{font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 8px;font-weight:600;}
+  .empty{color:var(--text-muted);font-size:13px;padding:22px 0;text-align:center;}
 
-  .task-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
-  .task-row .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;}
-  .task-row .check.done{background:var(--accent);border-color:var(--accent);color:#0f1210;font-weight:700;}
-  .task-row .body{flex:1;min-width:0;}
-  .task-row .name{font-size:14.5px;}
-  .task-row .name.done{color:var(--text-muted);text-decoration:line-through;}
-  .task-row input.note{width:100%;background:transparent;border:none;border-top:1px dashed var(--border);color:var(--text-muted);font-size:12px;padding-top:5px;margin-top:5px;outline:none;}
-  .task-row input.note::placeholder{color:#5c6368;}
-  .task-row .detail-btn{width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);
-    color:var(--text-muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
-  .task-row .detail-btn:active{border-color:var(--accent);color:var(--accent);}
-
-  /* ---- Calendari mensual ---- */
-  .cal-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 12px;gap:10px;}
-  .cal-title{font-family:var(--font-display);font-size:19px;text-transform:capitalize;}
-  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:7px;}
-  .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;}
-  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:7px;}
-  .cal-day{min-height:64px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s,background .15s;}
-  .cal-day.outside{opacity:0.2;pointer-events:none;}
-  .cal-day.past{background:#232a2c;border-color:#2d3538;}
-  .cal-day.past .dnum{color:var(--text-muted);}
+  /* ---- Month view ---- */
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
+  .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
+  .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
+  .cal-day{min-height:58px;border-radius:11px;padding:6px 4px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;display:flex;flex-direction:column;gap:2px;}
+  .cal-day.outside{opacity:.25;pointer-events:none;}
+  .cal-day.past{background:var(--surface-2);}
   .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
-  .cal-day.expanded-sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
-  .cal-day .dnum{font-family:var(--font-mono);font-size:14.5px;}
-  .cal-indicator{width:18px;height:5px;border-radius:3px;background:var(--border);}
-  .cal-indicator.full{background:var(--accent);}
-  .cal-indicator.partial{background:var(--amber);}
-  .cal-indicator.none{background:var(--alert);}
-  .cal-indicator.blue{background:var(--blue);}
-  .cal-expanded{background:var(--surface-2);border:1px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:10px;animation:fade .2s ease;}
-  .cal-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:8px;color:var(--accent);text-transform:capitalize;}
+  .cal-day.expanded-sel{border-color:var(--gym);box-shadow:0 0 0 1px var(--gym) inset;}
+  .cal-day .dnum{font-family:var(--font-mono);font-size:12.5px;text-align:center;}
+  .cal-day .chip{font-size:8.5px;border-radius:5px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+  .cal-day .chip.gym{background:var(--gym-bg);color:var(--gym-text);}
+  .cal-day .chip.classe{background:var(--classe-bg);color:var(--classe-text);}
+  .cal-day .chip.exterior{background:var(--exterior-bg);color:var(--exterior-text);}
+  .cal-day .chip.missed{opacity:.55;text-decoration:line-through;}
+  .cal-day .more{font-size:8px;color:var(--text-muted);text-align:center;}
 
-  .health-choice{display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap;}
-  .health-btn{border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--text);}
-  .health-btn.healthy:active{border-color:var(--accent);color:var(--accent);}
-  .health-btn.unhealthy:active{border-color:var(--alert);color:var(--alert);}
-  .empty{color:var(--text-muted);font-size:13px;padding:24px 0;text-align:center;}
+  .day-expanded{background:var(--surface);border:1px solid var(--gym);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
+  .day-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:10px;text-transform:capitalize;}
 
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:default;border-left:3px solid var(--accent-dim);}
-  .card.cardio{border-left-color:var(--blue-dim);}
-  .card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
-  .card .row .k{color:var(--text-muted);}
-  .card .row .v{font-family:var(--font-mono);}
-  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .act-row{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:11px;padding:10px 12px;margin-bottom:7px;border-left:4px solid var(--border);}
+  .act-row.gym{border-left-color:var(--gym);}
+  .act-row.classe{border-left-color:var(--classe);}
+  .act-row.exterior{border-left-color:var(--exterior);}
+  .act-row.completat{opacity:.6;}
+  .act-row .time{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);min-width:40px;}
+  .act-row .body{flex:1;min-width:0;}
+  .act-row .name{font-size:13.5px;font-weight:600;}
+  .act-row .name.done{text-decoration:line-through;color:var(--text-muted);}
+  .act-row .tag{font-size:10.5px;color:var(--text-muted);}
+  .act-row .status{font-size:15px;}
 
-  .type-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:4px 10px;border-radius:12px;margin:12px 0 8px;}
-  .type-badge .dot{width:7px;height:7px;border-radius:50%;}
-  .type-badge.gym{background:rgba(143,185,150,.15);color:var(--accent);}
-  .type-badge.gym .dot{background:var(--accent);}
-  .type-badge.cardio{background:rgba(111,168,224,.15);color:var(--blue);}
-  .type-badge.cardio .dot{background:var(--blue);}
-  .icon-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
-    color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
-  .icon-btn:active{border-color:var(--accent);color:var(--accent);}
-  .icon-btn.danger:active{border-color:var(--alert);color:var(--alert);}
-  .icon-row{display:flex;gap:6px;}
+  /* ---- Week time-grid ---- */
+  .week-grid-wrap{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow);}
+  .week-daynames{display:grid;grid-template-columns:44px repeat(7,1fr);border-bottom:1px solid var(--border);}
+  .week-daynames .dh{text-align:center;padding:8px 2px;font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600;border-left:1px solid var(--border);}
+  .week-daynames .dh.today{color:var(--amber);}
+  .week-daynames .dh .n{font-family:var(--font-mono);font-size:13px;color:var(--text);display:block;margin-top:2px;}
+  .week-scroll{max-height:66vh;overflow-y:auto;position:relative;}
+  .week-body{display:grid;grid-template-columns:44px repeat(7,1fr);}
+  .week-hours{display:flex;flex-direction:column;}
+  .week-hours .h{height:60px;font-size:9.5px;color:var(--text-muted);text-align:right;padding-right:5px;position:relative;top:-6px;}
+  .week-col{position:relative;border-left:1px solid var(--border);background-image:repeating-linear-gradient(to bottom, transparent, transparent 59px, var(--border) 60px);}
+  .week-col.today{background-color:#FFFBF2;}
+  .week-block{position:absolute;left:2px;right:2px;border-radius:8px;padding:3px 6px;font-size:10px;overflow:hidden;cursor:pointer;border-left:3px solid;}
+  .week-block.gym{background:var(--gym-bg);color:var(--gym-text);border-color:var(--gym);}
+  .week-block.classe{background:var(--classe-bg);color:var(--classe-text);border-color:var(--classe);}
+  .week-block.exterior{background:var(--exterior-bg);color:var(--exterior-text);border-color:var(--exterior);}
+  .week-block.completat{opacity:.5;}
+  .week-block.missed{opacity:.55;}
+  .week-block .wb-time{font-family:var(--font-mono);font-weight:700;font-size:9.5px;}
+  .week-block .wb-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .now-line{position:absolute;left:0;right:0;height:2px;background:var(--missed);z-index:5;}
+  .now-line::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--missed);}
 
-  /* ---- Admin ---- */
-  .subtabs{display:flex;gap:6px;margin:4px 0 16px;overflow-x:auto;}
-  .subtabs button{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12.5px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;}
-  .subtabs button.active{color:var(--bg);background:var(--accent);border-color:var(--accent);}
-  .admin-section{display:none;}
-  .admin-section.active{display:block;}
+  /* ---- Modal ---- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,22,18,.4);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:20px 18px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.15);}
+  @media(min-width:560px){ .modal-overlay{align-items:center;} .modal-box{border-radius:20px;max-height:85vh;} }
+  .modal-title{font-family:var(--font-display);font-size:17px;margin-bottom:14px;}
+  .modal-close{position:absolute;top:14px;right:14px;}
 
-  .log-subtitle{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:2px 0 10px;}
+  /* ---- Form ---- */
+  .form label{font-size:11.5px;color:var(--text-muted);display:block;margin:10px 0 4px;font-weight:600;}
+  .form label:first-child{margin-top:0;}
+  .form input, .form select, .form textarea{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:9px 10px;font-size:14px;outline:none;font-family:var(--font-body);}
+  .form input:focus, .form select:focus, .form textarea:focus{border-color:var(--gym);}
+  .form textarea{resize:vertical;min-height:60px;}
+  .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .form-actions{display:flex;gap:8px;margin-top:18px;}
+  .form-actions button{flex:1;}
+  .btn-danger{background:var(--missed-bg);color:var(--missed);border:none;border-radius:12px;padding:10px;font-size:13px;font-weight:600;}
 
-  .add-box{margin-top:18px;border:1.5px dashed var(--accent-dim);border-radius:var(--radius);padding:14px;background:rgba(143,185,150,.05);}
-  .add-box.editing{border-color:var(--amber-dim);background:rgba(232,166,82,.06);}
-  .add-box-title{font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;letter-spacing:0.2px;}
-  .add-box-title .label{display:flex;align-items:center;gap:6px;}
-  .add-box.editing .add-box-title{color:var(--amber);}
-  .add-box-title .plus{width:16px;height:16px;border-radius:50%;background:var(--accent);color:#0f1210;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
-  .add-box.editing .add-box-title .plus{background:var(--amber);}
-  .cancel-link{font-size:11px;color:var(--text-muted);text-decoration:underline;cursor:pointer;font-weight:400;}
-  .add-box .form{background:transparent;border:none;padding:0;margin:0;}
+  .type-picker{display:flex;gap:7px;}
+  .type-picker button{flex:1;border-radius:11px;border:1.5px solid var(--border);background:var(--surface);padding:10px 4px;font-size:12px;font-weight:600;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .type-picker button.sel-gym.active{border-color:var(--gym);background:var(--gym-bg);color:var(--gym-text);}
+  .type-picker button.sel-classe.active{border-color:var(--classe);background:var(--classe-bg);color:var(--classe-text);}
+  .type-picker button.sel-exterior.active{border-color:var(--exterior);background:var(--exterior-bg);color:var(--exterior-text);}
 
-  .form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:12px 0 20px;}
-  .form .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .form label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;}
-  .form input, .form select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 9px;font-size:13.5px;margin-bottom:8px;outline:none;font-family:var(--font-body);}
-  .form input[type="file"]{padding:7px;font-size:12px;color:var(--text-muted);}
-  .form input[type="file"]::file-selector-button{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;margin-right:8px;}
-  .form input:focus, .form select:focus{border-color:var(--accent);}
-  .form button.submit{width:100%;background:var(--accent);border:none;border-radius:7px;padding:10px;color:#10140f;font-weight:600;font-size:13.5px;margin-top:2px;}
+  .recur-toggle{display:flex;gap:7px;}
+  .recur-toggle button{flex:1;border-radius:11px;border:1.5px solid var(--border);background:var(--surface);padding:9px;font-size:12.5px;font-weight:600;color:var(--text-muted);}
+  .recur-toggle button.active{border-color:var(--text);background:var(--text);color:var(--surface);}
 
-  .nav-btn{background:var(--surface-2);border:1px solid var(--border);width:42px;height:42px;border-radius:13px;
-    color:var(--text-muted);font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    transition:border-color .15s,color .15s;}
-  .nav-btn:active{border-color:var(--accent);color:var(--accent);}
+  .day-chips{display:flex;gap:5px;flex-wrap:wrap;}
+  .day-chips button{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);}
+  .day-chips button.active{border-color:var(--gym);background:var(--gym);color:#fff;}
 
-  .datebar{display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;gap:10px;}
-  .datebar .lbl{font-family:var(--font-display);font-size:16px;text-transform:capitalize;}
+  /* ---- Sliders ---- */
+  .slider-wrap{margin:14px 0;}
+  .slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .slider-emoji{font-size:26px;}
+  .slider-val{font-family:var(--font-mono);font-size:16px;font-weight:700;}
+  input[type="range"]{-webkit-appearance:none;width:100%;height:8px;border-radius:5px;outline:none;}
+  input[type="range"]#diffSlider{background:linear-gradient(to right, #5CAE82, #DFA84E, #D9776A);}
+  input[type="range"]#satSlider{background:linear-gradient(to right, #D9776A, #DFA84E, #5CAE82);}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--text);cursor:pointer;box-shadow:var(--shadow);}
+  input[type="range"]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--text);cursor:pointer;}
 
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
-  .stat-grid.single{grid-template-columns:1fr;}
-  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
-  .stat-box .num{font-family:var(--font-mono);font-size:24px;color:var(--accent);}
-  .stat-box .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
-  .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;height:220px;}
+  /* ---- Stats ---- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0;}
+  .stat-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);}
+  .stat-box .num{font-family:var(--font-mono);font-size:22px;color:var(--gym-text);}
+  .stat-box .lbl{font-size:10.5px;color:var(--text-muted);margin-top:3px;}
+  .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;height:220px;box-shadow:var(--shadow);}
 
-  .rangebar{display:flex;gap:6px;margin:12px 0;}
-  .rangebar button{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text-muted);}
-  .rangebar button.active{color:var(--bg);background:var(--accent);border-color:var(--accent);}
+  .goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);}
+  .goal-card .row{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;}
+  .goal-bar{height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
+  .goal-bar-fill{height:100%;background:var(--gym);border-radius:5px;}
 
-  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--accent);color:var(--text);padding:8px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:50;}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:30;}
+  nav.tabs button{background:none;border:none;color:var(--text-muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;flex:1;font-weight:600;}
+  nav.tabs button .ic{font-size:18px;}
+  nav.tabs button.active{color:var(--gym-text);}
+
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);padding:9px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:250;}
   .toast.show{opacity:1;}
 
   .fab-refresh{position:fixed;right:16px;bottom:76px;z-index:40;width:44px;height:44px;border-radius:50%;
-    background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 4px 14px rgba(143,185,150,.35);}
-  .fab-refresh svg{width:20px;height:20px;stroke:#0f1210;transition:transform .5s ease;}
+    background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .fab-refresh svg{width:19px;height:19px;stroke:var(--text);transition:transform .5s ease;}
   .fab-refresh.spinning svg{animation:spin .6s linear infinite;}
   @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
-<!-- ===== PANTALLA DE LOGIN ===== -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="brand" style="justify-content:center;margin-bottom:4px;"><span class="dot"></span><h1>VITAL</h1></div>
-
-    <div id="loginFormWrap">
-      <p style="color:var(--text-muted);font-size:12.5px;text-align:center;margin:0 0 20px;">Selecciona el teu usuari per continuar</p>
-      <div class="form">
-        <label>Usuari</label>
-        <select id="loginUser">
-          <option value="">Tria un usuari...</option>
-          <option value="COME">Come</option>
-          <option value="JUDITH">Judith</option>
-        </select>
-        <label>Contrasenya</label>
-        <input id="loginPassword" type="password" placeholder="Contrasenya">
-        <button class="submit" onclick="doLogin()">Entrar</button>
-        <div id="loginError" style="color:var(--alert);font-size:12px;margin-top:10px;text-align:center;display:none;">Usuari o contrasenya incorrectes</div>
-      </div>
-    </div>
-
-    <div id="loginLoading" style="display:none;text-align:center;padding:20px 0;">
-      <div class="login-spinner"></div>
-      <p style="color:var(--text-muted);font-size:13px;margin-top:14px;">Carregant dades de <span id="loginLoadingUser"></span>...</p>
-    </div>
-  </div>
-</div>
-
-<div id="appRoot" style="display:none;">
-
 <header class="top">
-  <div class="brand"><span class="dot"></span><h1>VITAL</h1></div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div class="streak">🔥 <span id="streakNum">0</span> dies</div>
-    <button class="admin-btn" onclick="showAdminPage()" title="Admin">⚙️</button>
-    <button class="admin-btn" onclick="doLogout()" title="Canviar d'usuari">👤</button>
+  <div class="seg-toggle" id="mainViewToggle">
+    <button data-view="week" class="active">Setmana</button>
+    <button data-view="month">Mes</button>
   </div>
+  <button class="btn-primary" onclick="openActivityForm()">+ Nova activitat</button>
 </header>
 
 <main>
 
-  <!-- ===== PÀGINA: AVUI / CALENDARI ===== -->
-  <section class="page active" id="page-avui">
-    <div class="cal-header">
-      <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
-      <div class="cal-title" id="calTitle"></div>
-      <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  <!-- ===== PÀGINA: CALENDARI ===== -->
+  <section class="page active" id="page-calendar">
+    <div class="period-nav">
+      <button class="nav-btn" onclick="changePeriod(-1)">‹</button>
+      <div class="period-label" id="periodLabel"></div>
+      <button class="nav-btn" onclick="changePeriod(1)">›</button>
     </div>
-    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
-    <div id="calGrid"></div>
-  </section>
 
-  <!-- ===== PÀGINA: EXERCICI MATINAL ===== -->
-  <section class="page" id="page-matinal">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Exercici matinal</h2>
-    <div class="datebar">
-      <button class="nav-btn" onclick="changeFocusDay('matinal',-1)">‹</button>
-      <div class="lbl" id="matinalDateLabel"></div>
-      <button class="nav-btn" onclick="changeFocusDay('matinal',1)">›</button>
+    <div id="calendarWeek">
+      <div class="week-grid-wrap">
+        <div class="week-daynames" id="weekDaynames"></div>
+        <div class="week-scroll"><div class="week-body" id="weekBody"></div></div>
+      </div>
     </div>
-    <div class="stat-grid single"><div class="stat-box"><div class="num" id="matinalPct">–</div><div class="lbl">Estat de la rutina d'avui</div></div></div>
-    <div id="matinalContent"></div>
-  </section>
 
-  <!-- ===== PÀGINA: ÀPATS ===== -->
-  <section class="page" id="page-apats">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Àpats / Dieta</h2>
-    <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px;">Clica qualsevol dia per veure'l o afegir-hi un àpat (passat, avui o futur)</p>
-    <div class="cal-header">
-      <button class="nav-btn" onclick="changeApatsMonth(-1)">‹</button>
-      <div class="cal-title" id="apatsCalTitle"></div>
-      <button class="nav-btn" onclick="changeApatsMonth(1)">›</button>
+    <div id="calendarMonth" style="display:none;">
+      <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
+      <div id="monthGrid"></div>
     </div>
-    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
-    <div id="apatsCalGrid"></div>
-  </section>
-
-  <!-- ===== PÀGINA: GIMNÀS ===== -->
-  <section class="page" id="page-entrenaments">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Entrenaments</h2>
-    <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px;">Clica qualsevol dia per veure'l o afegir-hi un entreno (passat, avui o futur)</p>
-    <div class="cal-header">
-      <button class="nav-btn" onclick="changeEntrenamentsMonth(-1)">‹</button>
-      <div class="cal-title" id="entrenamentsCalTitle"></div>
-      <button class="nav-btn" onclick="changeEntrenamentsMonth(1)">›</button>
-    </div>
-    <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
-    <div id="entrenamentsCalGrid"></div>
-  </section>
-
-  <!-- ===== PÀGINA: RUTINES ===== -->
-  <section class="page" id="page-rutines">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Rutines / Hàbits</h2>
-    <div class="datebar">
-      <button class="nav-btn" onclick="changeFocusDay('rutines',-1)">‹</button>
-      <div class="lbl" id="rutinesDateLabel"></div>
-      <button class="nav-btn" onclick="changeFocusDay('rutines',1)">›</button>
-    </div>
-    <div class="stat-grid single"><div class="stat-box"><div class="num" id="rutinesPct">–</div><div class="lbl">% assolit aquest dia</div></div></div>
-    <div id="rutinesContent"></div>
   </section>
 
   <!-- ===== PÀGINA: ESTADÍSTIQUES ===== -->
   <section class="page" id="page-stats">
-    <h2 style="font-size:18px;margin:14px 0 4px;">Estadístiques</h2>
-    <div class="rangebar" id="rangeBar">
-      <button data-r="7" class="active">7 dies</button>
-      <button data-r="30">30 dies</button>
-      <button data-r="90">90 dies</button>
-      <button data-r="365">Any</button>
-      <button data-r="custom">Des de...</button>
-    </div>
-    <div id="customDateWrap" style="display:none;margin:0 0 14px;">
-      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Calcular des de la data:</label>
-      <input type="date" id="statsCustomDate" class="mono" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 9px;font-size:13.5px;color-scheme:dark;">
-    </div>
-
-    <div class="section-title">Resum general</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statCompliment">–</div><div class="lbl">% compliment global</div></div>
-      <div class="stat-box"><div class="num" id="statStreak">–</div><div class="lbl">Ratxa actual (dies)</div></div>
-    </div>
-    <div class="chart-wrap"><canvas id="chartCompliment"></canvas></div>
-
-    <div class="section-title" style="color:var(--amber);">Exercici matinal</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statMatinalFetes">–</div><div class="lbl">Rutines fetes</div></div>
-      <div class="stat-box"><div class="num" id="statMatinalPct">–</div><div class="lbl">% compliment</div></div>
-    </div>
-
-    <div class="section-title" style="color:var(--purple);">Àpats</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statApatsPct">–</div><div class="lbl">% compliment</div></div>
-      <div class="stat-box"><div class="num" id="statApatsSalut">–</div><div class="lbl">% saludables</div></div>
-    </div>
-    <div class="chart-wrap" style="height:190px;"><canvas id="chartApatsSalut"></canvas></div>
-
-    <div class="section-title" style="color:var(--blue);">Entrenaments</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statEntTotal">–</div><div class="lbl">Sessions totals</div></div>
-      <div class="stat-box"><div class="num" id="statEntPes">–</div><div class="lbl">Kg totals aixecats</div></div>
-    </div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statCardioMin">–</div><div class="lbl">Temps de cardio</div></div>
-      <div class="stat-box"><div class="num" id="statCardioKm">–</div><div class="lbl">Km recorreguts</div></div>
-    </div>
-    <div class="section-title">Sessions per tipus</div>
-    <div class="chart-wrap"><canvas id="chartEntTipus"></canvas></div>
-    <div class="section-title">Volum per exercici (Gimnàs)</div>
-    <div class="chart-wrap"><canvas id="chartVolum"></canvas></div>
-    <div class="section-title">Minuts de cardio per tipus</div>
-    <div class="chart-wrap"><canvas id="chartCardioTipus"></canvas></div>
-
-    <div class="section-title" style="color:var(--accent);">Rutines / hàbits</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="num" id="statRutinesFetes">–</div><div class="lbl">Complertes</div></div>
-      <div class="stat-box"><div class="num" id="statRutinesPct">–</div><div class="lbl">% compliment</div></div>
-    </div>
-
-    <div class="section-title">Compliment per dia de la setmana</div>
-    <div class="chart-wrap"><canvas id="chartSetmana"></canvas></div>
-
-    <div class="section-title">Evolució física (pes)</div>
-    <div class="chart-wrap"><canvas id="chartPes"></canvas></div>
-  </section>
-
-  <!-- ===== PÀGINA: ADMIN ===== -->
-  <section class="page" id="page-admin">
-    <div class="datebar">
-      <h2 style="font-size:18px;">Admin</h2>
-      <button class="nav-btn" style="width:auto;padding:0 14px;font-size:13px;" onclick="backFromAdmin()">‹ Tornar</button>
-    </div>
-    <div class="subtabs" id="adminSubtabs">
-      <button data-s="tasques" class="active">Tasques</button>
-      <button data-s="mesures">Mesures</button>
-      <button data-s="rutinesmati">Rutines matí</button>
-    </div>
-
-    <!-- -- TASQUES -- -->
-    <div class="admin-section active" id="admin-tasques">
-      <div class="add-box" id="tascaAddBox">
-        <div class="add-box-title"><span class="label"><span class="plus">+</span><span id="tascaFormTitle">Nova tasca</span></span>
-          <span class="cancel-link" id="tascaCancelLink" style="display:none;" onclick="cancelEditTasca()">Cancel·la</span></div>
-        <div class="form">
-          <label>Categoria</label>
-          <select id="tascaCategoria">
-            <option>Exercici matinal</option>
-            <option>Àpats</option>
-            <option>Entrenament</option>
-            <option>Rutines</option>
-          </select>
-          <label>Nom</label>
-          <input id="tascaNom" placeholder="Nom de la tasca">
-          <label>Dies (Diari, o L,X,V) — s'ignora si poses una data puntual</label>
-          <input id="tascaDies" placeholder="Diari" value="Diari">
-          <label>Data puntual (opcional — només per a un dia concret, no recurrent)</label>
-          <input id="tascaData" type="date">
-          <label>Ordre</label>
-          <input id="tascaOrdre" type="number" placeholder="1">
-          <button class="submit" id="tascaSubmitBtn" onclick="guardarTasca()">Afegir tasca</button>
-        </div>
+    <div class="cal-toolbar">
+      <div class="seg-toggle" id="statsViewToggle">
+        <button data-view="week" class="active">Setmana</button>
+        <button data-view="month">Mes</button>
       </div>
-      <div class="section-title" style="margin-top:18px;">Totes les tasques</div>
-      <div id="adminTasquesList"></div>
+      <button class="btn-secondary" onclick="openObjectius()">🎯 Objectius</button>
     </div>
-
-    <!-- -- MESURES -- -->
-    <div class="admin-section" id="admin-mesures">
-      <div class="add-box">
-        <div class="add-box-title"><span class="label"><span class="plus">+</span>Nova mesura</span></div>
-        <div class="form">
-          <label>Data</label>
-          <input id="mesuraData" type="date">
-          <div class="grid">
-            <div><label>Pes (kg)</label><input id="mesuraPes" type="number" step="0.1"></div>
-            <div><label>Greix (%)</label><input id="mesuraGreix" type="number" step="0.1"></div>
-          </div>
-          <label>Cintura (cm)</label>
-          <input id="mesuraCintura" type="number" step="0.5">
-          <label>Nota (opcional)</label>
-          <input id="mesuraNota" placeholder="...">
-          <button class="submit" onclick="afegirMesuraAdmin()">Afegir mesura</button>
-        </div>
-      </div>
-      <div class="section-title" style="margin-top:18px;">Últimes mesures</div>
-      <div id="adminMesuresList"></div>
+    <div class="period-nav">
+      <button class="nav-btn" onclick="changeStatsPeriod(-1)">‹</button>
+      <div class="period-label" id="statsPeriodLabel"></div>
+      <button class="nav-btn" onclick="changeStatsPeriod(1)">›</button>
     </div>
-
-    <!-- -- RUTINES MATÍ -- -->
-    <div class="admin-section" id="admin-rutinesmati">
-      <p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Primera versió: exercicis de mobilitat/estirament/hiit/abdominals per dia de la setmana. Encara no surten a la pàgina de Matí — ho connectarem després.</p>
-      <button class="submit" style="background:var(--surface-2);color:var(--text);border:1px solid var(--accent-dim);margin-bottom:16px;" onclick="seedRutinaMati()">⚡ Carregar rutina de calistènia (5 dies, 25 exercicis)</button>
-      <div class="add-box" id="rutinaAddBox">
-        <div class="add-box-title"><span class="label"><span class="plus">+</span><span id="rutinaFormTitle">Nou exercici</span></span>
-          <span class="cancel-link" id="rutinaCancelLink" style="display:none;" onclick="cancelEditRutina()">Cancel·la</span></div>
-        <div class="form">
-          <label>Dia</label>
-          <select id="rutinaDia">
-            <option>Diari</option><option>L</option><option>M</option><option>X</option><option>J</option><option>V</option><option>S</option><option>D</option>
-          </select>
-          <label>Nom de l'exercici</label>
-          <input id="rutinaNom" placeholder="Mobilitat de malucs">
-          <label>Tipus</label>
-          <select id="rutinaTipus"><option>Mobilitat</option><option>Estirament</option><option>HIIT</option><option>Abdominals</option><option>Altres</option></select>
-          <label>Durada (min)</label>
-          <input id="rutinaDurada" type="number">
-          <label>Ordre</label>
-          <input id="rutinaOrdre" type="number" placeholder="1">
-          <button class="submit" id="rutinaSubmitBtn" onclick="guardarRutina()">Afegir exercici</button>
-        </div>
-      </div>
-      <div class="section-title" style="margin-top:18px;">Tots els exercicis</div>
-      <div id="adminRutinesList"></div>
-    </div>
+    <div id="statsContent"></div>
   </section>
 
 </main>
 
 <nav class="tabs">
-  <button class="tab-btn active" data-page="avui"><span class="ic">📅</span>Avui</button>
-  <button class="tab-btn" data-page="matinal"><span class="ic">🌅</span>Matinal</button>
-  <button class="tab-btn" data-page="apats"><span class="ic">🍽️</span>Àpats</button>
-  <button class="tab-btn" data-page="entrenaments"><span class="ic">🏋️</span>Entrenaments</button>
-  <button class="tab-btn" data-page="rutines"><span class="ic">✅</span>Rutines</button>
+  <button class="tab-btn active" data-page="calendar"><span class="ic">📅</span>Calendari</button>
   <button class="tab-btn" data-page="stats"><span class="ic">📊</span>Stats</button>
 </nav>
-
-<div class="toast" id="toast"></div>
 
 <button class="fab-refresh" id="fabRefresh" title="Refrescar dades">
   <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -458,31 +243,32 @@
   </svg>
 </button>
 
-</div><!-- /appRoot -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 /* ============ CONFIG ============ */
-const USER_API_URLS = {
-  "COME": "https://script.google.com/macros/s/AKfycbxXFjP2tvE65qf9q7u1xswByRyEgOef_pI1i0FcQFfUmgo3N2--u9BQvVkX919wxtLMFw/exec",
-  "JUDITH": "https://script.google.com/macros/s/AKfycbzPBoyxKWUvSh_GZCH1jTvLx76NxDbkIkz6yXWVhYj5sed9RjR5CYT1wIkC5R8UplmV/exec"
+const API_URL = "ENGANXA_AQUI_LA_URL_DEL_APPS_SCRIPT";
+
+const TIPUS_INFO = {
+  "Gym":        {cls:"gym",      label:"Gym",        icon:"🏋️", color:"#5CAE82"},
+  "Classe Gym": {cls:"classe",   label:"Classe Gym",  icon:"🧘", color:"#5C9FCB"},
+  "Exterior":   {cls:"exterior", label:"Exterior",    icon:"🏃", color:"#9B7BC4"}
 };
-const APP_PASSWORD = "vital2026";
-let API_URL = "";
+const DEFAULT_DURATION = {"Gym":60, "Classe Gym":60, "Exterior":45};
 
 /* ============ STATE ============ */
-let STATE = { tasques: [], registre: [], entrenos: [], apats: [], mesures: [], rutinesMati: [] };
-let selectedDate = new Date();
+let STATE = { activitats: [], log: [], objectius: [] };
 const DIES_CODI = ["D","L","M","X","J","V","S"]; // getDay(): 0=diumenge
 
 /* ============ API ============ */
 async function parseApiResponse(res){
   const text = await res.text();
-  try{
-    return JSON.parse(text);
-  }catch(e){
-    console.error("Resposta no-JSON de l'API:", text.slice(0,300));
-    throw new Error("Resposta inesperada del servidor (potser cal reautoritzar l'Apps Script)");
-  }
+  try{ return JSON.parse(text); }
+  catch(e){ console.error("Resposta no-JSON:", text.slice(0,300)); throw new Error("Resposta inesperada del servidor"); }
 }
 async function apiGet(action, params={}){
   const qs = new URLSearchParams({action, _ts:Date.now(), ...params}).toString();
@@ -490,62 +276,70 @@ async function apiGet(action, params={}){
   return parseApiResponse(res);
 }
 async function apiPost(action, body={}){
-  // text/plain evita el preflight CORS amb Apps Script
   const res = await fetch(API_URL, {
-    method:"POST",
-    cache:"no-store",
+    method:"POST", cache:"no-store",
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action, ...body})
   });
   return parseApiResponse(res);
 }
-
 function showToast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), 1600);
+  setTimeout(()=>t.classList.remove("show"), 1700);
 }
 
-/* ============ HELPERS DATA ============ */
-function fmt(d){ // -> YYYY-MM-DD
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
+/* ============ HELPERS DE DATA ============ */
+function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function diaCodi(d){ return DIES_CODI[d.getDay()]; }
-function tasquesActivesDia(d){
-  const codi = diaCodi(d);
-  const dStr = fmt(d);
-  const items = STATE.tasques.filter(t=>{
-    if(String(t.Actiu).toUpperCase()!=="TRUE") return false;
-    if(t.Categoria==="Exercici matinal") return false; // gestionat com a tasca única "Rutina diària"
-    if(t.Data){ return t.Data === dStr; } // tasca puntual: només aquell dia, ignora Dies
-    if(!t.Dies || t.Dies==="Diari") return true;
-    return t.Dies.split(",").map(s=>s.trim()).includes(codi);
-  }).sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
+function parseTime(hhmm){
+  if(!hhmm) return null;
+  const [h,m] = String(hhmm).split(":").map(Number);
+  return h*60 + (m||0);
+}
+function fmtHoraMin(min){
+  const h = Math.floor(min/60), m = min%60;
+  return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+function mondayOf(d){ const r=new Date(d); const day=(r.getDay()+6)%7; r.setDate(r.getDate()-day); return r; }
 
-  const rutinaAvui = STATE.rutinesMati.filter(r=> String(r.Actiu).toUpperCase()!=="FALSE" && (r.Dia==="Diari" || r.Dia===codi));
-  if(rutinaAvui.length){
-    items.unshift({ID:"rutina_mati", Categoria:"Exercici matinal", Nom:"Rutina diària", Dies:"Diari", Actiu:true, Ordre:0});
-  }
-  return items;
+function activitatsDelDia(d){
+  const codi = diaCodi(d), dStr = fmt(d);
+  return STATE.activitats.filter(a=>{
+    if(String(a.Actiu).toUpperCase()!=="TRUE") return false;
+    if(a.DataPuntual){ return a.DataPuntual===dStr; }
+    if(!a.DiesSetmana || a.DiesSetmana==="Diari") return true;
+    return a.DiesSetmana.split(",").map(s=>s.trim()).includes(codi);
+  }).sort((a,b)=>(parseTime(a.HoraInici)||0)-(parseTime(b.HoraInici)||0));
 }
-function registreDia(dataStr){
-  return STATE.registre.filter(r=>r.Data===dataStr);
+function logEntry(activitatId, dStr){
+  return STATE.log.find(l=>String(l.ActivitatID)===String(activitatId) && l.Data===dStr);
 }
-function tasksByCategoria(cat, dataStr){
-  const d = new Date(dataStr+"T00:00:00");
-  return tasquesActivesDia(d).filter(t=>t.Categoria===cat);
+function isCompletat(activitatId, dStr){
+  const l = logEntry(activitatId, dStr);
+  return l && String(l.Completat).toUpperCase()==="TRUE";
+}
+function isPerduda(activitatId, dStr){
+  const todayStr = fmt(new Date());
+  return dStr < todayStr && !isCompletat(activitatId, dStr);
+}
+function effectiveRange(a){
+  const start = parseTime(a.HoraInici);
+  if(start===null) return null;
+  let end;
+  if(a.HoraFi) end = parseTime(a.HoraFi);
+  else if(a.Tipus==="Gym" && a.DuradaMin) end = start + Number(a.DuradaMin);
+  else end = start + (DEFAULT_DURATION[a.Tipus]||60);
+  return {start, end};
 }
 
 /* ============ CÀRREGA ============ */
 async function loadAll(){
   const r = await apiGet("tot");
-  if(!r.ok){ throw new Error(r.error || "Error carregant dades"); }
-  STATE.tasques = r.tasques; STATE.registre = r.registre;
-  STATE.entrenos = r.entrenos; STATE.apats = r.apats; STATE.mesures = r.mesures;
-  STATE.rutinesMati = r.rutinesMati || [];
-  renderCalendar(); renderMatinalDetail(); renderRutinesDetail();
-  renderApatsCalendar(); renderEntrenamentsCalendar(); computeStreak(); renderStats();
-  renderAdminTasquesList(); renderAdminMesuresList(); renderAdminRutinesList();
+  if(!r.ok) throw new Error(r.error || "Error carregant dades");
+  STATE.activitats = r.activitats; STATE.log = r.log; STATE.objectius = r.objectius;
+  renderCalendarView();
+  if(document.getElementById("page-stats").classList.contains("active")) renderStats();
 }
 
 /* ============ NAV TABS ============ */
@@ -555,60 +349,120 @@ document.querySelectorAll(".tab-btn").forEach(btn=>{
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("page-"+btn.dataset.page).classList.add("active");
-    const p = btn.dataset.page;
-    if(p==="stats") renderStats();
-    else if(p==="matinal") renderMatinalDetail();
-    else if(p==="rutines") renderRutinesDetail();
-    else if(p==="apats") renderApatsCalendar();
-    else if(p==="entrenaments") renderEntrenamentsCalendar();
+    if(btn.dataset.page==="stats") renderStats();
   });
 });
 
-/* ============ ADMIN: navegació ============ */
-let lastActiveTabBeforeAdmin = "avui";
-function showAdminPage(){
-  const current = document.querySelector(".tab-btn.active");
-  if(current) lastActiveTabBeforeAdmin = current.dataset.page;
-  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById("page-admin").classList.add("active");
+/* ============ MODAL ============ */
+function openModal(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modalOverlay").classList.add("open");
 }
-function backFromAdmin(){
-  document.getElementById("page-admin").classList.remove("active");
-  const btn = document.querySelector(`.tab-btn[data-page="${lastActiveTabBeforeAdmin}"]`);
-  if(btn) btn.click(); else document.getElementById("page-avui").classList.add("active");
+function closeModal(){
+  document.getElementById("modalOverlay").classList.remove("open");
+  document.getElementById("modalBox").innerHTML = "";
 }
-document.getElementById("adminSubtabs").addEventListener("click", e=>{
-  if(e.target.tagName!=="BUTTON") return;
-  document.querySelectorAll("#adminSubtabs button").forEach(b=>b.classList.remove("active"));
-  document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));
-  e.target.classList.add("active");
-  document.getElementById("admin-"+e.target.dataset.s).classList.add("active");
+document.getElementById("modalOverlay").addEventListener("click", e=>{
+  if(e.target.id==="modalOverlay") closeModal();
 });
-let calMonth = new Date(); calMonth.setDate(1);
-let expandedDate = null;
 
-function changeMonth(delta){
-  calMonth.setMonth(calMonth.getMonth()+delta);
-  renderCalendar();
+/* ============ CALENDARI: estat de vista ============ */
+let calViewMode = "week";
+let calRefDate = new Date();
+let monthExpandedDate = null;
+
+document.getElementById("mainViewToggle").addEventListener("click", e=>{
+  if(e.target.tagName!=="BUTTON") return;
+  document.querySelectorAll("#mainViewToggle button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  calViewMode = e.target.dataset.view;
+  document.getElementById("calendarWeek").style.display = calViewMode==="week" ? "block":"none";
+  document.getElementById("calendarMonth").style.display = calViewMode==="month" ? "block":"none";
+  renderCalendarView();
+});
+function changePeriod(delta){
+  if(calViewMode==="week") calRefDate.setDate(calRefDate.getDate() + delta*7);
+  else calRefDate.setMonth(calRefDate.getMonth() + delta);
+  renderCalendarView();
 }
-function toggleExpand(dStr){
-  expandedDate = (expandedDate===dStr) ? null : dStr;
-  renderCalendar();
+function renderCalendarView(){
+  if(calViewMode==="week"){
+    const mon = mondayOf(calRefDate);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    const lbl = mon.toLocaleDateString('ca-ES',{day:'numeric',month:'short'}) + " – " + sun.toLocaleDateString('ca-ES',{day:'numeric',month:'short',year:'numeric'});
+    document.getElementById("periodLabel").textContent = lbl;
+    renderWeekGrid();
+  } else {
+    const lblRaw = calRefDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
+    document.getElementById("periodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
+    renderMonthGrid();
+  }
 }
-function diaStatus(dStr, todayStr){
+
+/* ============ VISTA SETMANA (graella horària) ============ */
+const GRID_START_H = 6, GRID_END_H = 23;
+function renderWeekGrid(){
+  const mon = mondayOf(calRefDate);
+  const todayStr = fmt(new Date());
+
+  // capçalera dies
+  let headHtml = `<div></div>`;
+  const days = [];
+  for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); }
+  days.forEach(d=>{
+    const dStr = fmt(d);
+    headHtml += `<div class="dh ${dStr===todayStr?'today':''}">${d.toLocaleDateString('ca-ES',{weekday:'short'})}<span class="n">${d.getDate()}</span></div>`;
+  });
+  document.getElementById("weekDaynames").innerHTML = headHtml;
+
+  // cos: columna hores + 7 columnes dia
+  const totalMin = (GRID_END_H-GRID_START_H)*60;
+  let hoursHtml = "";
+  for(let h=GRID_START_H; h<GRID_END_H; h++){ hoursHtml += `<div class="h">${String(h).padStart(2,"0")}:00</div>`; }
+
+  let bodyHtml = `<div class="week-hours" style="height:${totalMin}px;">${hoursHtml}</div>`;
+  days.forEach(d=>{
+    const dStr = fmt(d);
+    const isToday = dStr===todayStr;
+    let colHtml = `<div class="week-col ${isToday?'today':''}" style="height:${totalMin}px;">`;
+    activitatsDelDia(d).forEach(a=>{
+      const range = effectiveRange(a);
+      if(!range) return;
+      const top = Math.max(0, range.start - GRID_START_H*60);
+      const height = Math.max(range.end - range.start, 22);
+      if(top > totalMin) return;
+      const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
+      const done = isCompletat(a.ID, dStr);
+      const missed = isPerduda(a.ID, dStr);
+      colHtml += `<div class="week-block ${info.cls} ${done?'completat':''} ${missed?'missed':''}" style="top:${top}px;height:${height}px;" onclick="openActivityAction('${a.ID}','${dStr}')">
+        <div class="wb-time">${a.HoraInici||''}</div>
+        <div class="wb-name">${done?'✓ ':''}${a.Nom||info.label}</div>
+      </div>`;
+    });
+    if(isToday){
+      const now = new Date();
+      const nowMin = now.getHours()*60+now.getMinutes();
+      if(nowMin>=GRID_START_H*60 && nowMin<=GRID_END_H*60){
+        colHtml += `<div class="now-line" style="top:${nowMin-GRID_START_H*60}px;"></div>`;
+      }
+    }
+    colHtml += `</div>`;
+    bodyHtml += colHtml;
+  });
+  document.getElementById("weekBody").innerHTML = bodyHtml;
+}
+
+/* ============ VISTA MES ============ */
+function diaStatusClass(dStr, todayStr){
   if(dStr===todayStr) return "today";
   return dStr < todayStr ? "past" : "future";
 }
-
-/** Helper genèric per construir un calendari mensual amb dies desplegables.
- * indicatorFn(dStr) -> {cls, dot(bool)}
- * panelFn(dStr) -> html del panell desplegat
- */
-function buildCalendarHTML(monthDate, expandedDate, indicatorFn, panelFn, clickFnName){
-  const titleRaw = monthDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
-  const title = titleRaw.charAt(0).toUpperCase()+titleRaw.slice(1);
-  const year = monthDate.getFullYear(), month = monthDate.getMonth();
+function toggleMonthDay(dStr){
+  monthExpandedDate = (monthExpandedDate===dStr) ? null : dStr;
+  renderMonthGrid();
+}
+function renderMonthGrid(){
+  const year = calRefDate.getFullYear(), month = calRefDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay()+6)%7;
   const daysInMonth = new Date(year, month+1, 0).getDate();
@@ -622,1029 +476,496 @@ function buildCalendarHTML(monthDate, expandedDate, indicatorFn, panelFn, clickF
   let html = "";
   for(let w=0; w<cells.length/7; w++){
     const weekCells = cells.slice(w*7, w*7+7);
-    html += `<div class="cal-week">`;
+    html += `<div class="cal-week-row">`;
     weekCells.forEach(c=>{
       const dStr = fmt(c.date);
-      const {cls, dot} = indicatorFn(dStr);
-      const status = diaStatus(dStr, todayStr);
-      html += `<div class="cal-day ${status} ${c.outside?'outside':''} ${dStr===expandedDate?'expanded-sel':''}"
-        onclick="${c.outside?'':`${clickFnName}('${dStr}')`}">
+      const acts = c.outside ? [] : activitatsDelDia(c.date);
+      const visible = acts.slice(0,3);
+      const chipsHtml = visible.map(a=>{
+        const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
+        const missed = isPerduda(a.ID, dStr);
+        return `<div class="chip ${info.cls} ${missed?'missed':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
+      }).join("");
+      const moreHtml = acts.length>3 ? `<div class="more">+${acts.length-3} més</div>` : "";
+      const status = diaStatusClass(dStr, todayStr);
+      html += `<div class="cal-day ${status} ${c.outside?'outside':''} ${dStr===monthExpandedDate?'expanded-sel':''}"
+        onclick="${c.outside?'':`toggleMonthDay('${dStr}')`}">
         <div class="dnum">${c.date.getDate()}</div>
-        ${dot?`<div class="cal-indicator ${cls}"></div>`:''}
+        ${chipsHtml}${moreHtml}
       </div>`;
     });
     html += `</div>`;
-    if(expandedDate && weekCells.some(c=>fmt(c.date)===expandedDate)){
-      html += panelFn(expandedDate);
+    if(monthExpandedDate && weekCells.some(c=>fmt(c.date)===monthExpandedDate)){
+      html += renderDayExpandedPanel(monthExpandedDate);
     }
   }
-  return {html, title};
+  document.getElementById("monthGrid").innerHTML = html;
 }
-
-function renderCalendar(){
-  const {html, title} = buildCalendarHTML(calMonth, expandedDate,
-    dStr=>{
-      const d = new Date(dStr+"T00:00:00");
-      const tasques = tasquesActivesDia(d);
-      const reg = registreDia(dStr);
-      const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-      if(tasques.length===0) return {cls:"", dot:false};
-      return {cls: fetes===tasques.length ? "full" : (fetes>0 ? "partial" : "none"), dot:true};
-    },
-    renderExpandedPanel, "toggleExpand");
-  document.getElementById("calTitle").textContent = title;
-  document.getElementById("calGrid").innerHTML = html;
-}
-
-const CATEGORIA_PAGINA = {
-  "Exercici matinal": "matinal",
-  "Rutines": "rutines",
-  "Àpats": "apats",
-  "Entrenament": "entrenaments"
-};
-const CATEGORIA_COLOR = {
-  "Exercici matinal": "var(--amber)",
-  "Àpats": "var(--purple)",
-  "Entrenament": "var(--blue)",
-  "Rutines": "var(--accent)"
-};
-const CATEGORIA_COLOR_DIM = {
-  "Exercici matinal": "var(--amber-dim)",
-  "Àpats": "var(--purple-dim)",
-  "Entrenament": "var(--blue-dim)",
-  "Rutines": "var(--accent-dim)"
-};
-
-let pendingHealthChoice = null; // {dStr, id}
-
-function renderExpandedPanel(dStr){
+function renderDayExpandedPanel(dStr){
   const d = new Date(dStr+"T00:00:00");
-  const tasques = tasquesActivesDia(d);
-  const reg = registreDia(dStr);
-  const cats = [...new Set(tasques.map(t=>t.Categoria))];
+  const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const acts = activitatsDelDia(d);
+  const inner = acts.length ? acts.map(a=>{
+    const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
+    const done = isCompletat(a.ID, dStr);
+    const missed = isPerduda(a.ID, dStr);
+    return `<div class="act-row ${info.cls} ${done?'completat':''}" onclick="openActivityAction('${a.ID}','${dStr}')">
+      <div class="time">${a.HoraInici||'--:--'}</div>
+      <div class="body">
+        <div class="name ${done?'done':''}">${a.Nom||info.label}</div>
+        <div class="tag">${info.icon} ${info.label}${missed?' · <span style=\"color:var(--missed);\">no completada</span>':''}</div>
+      </div>
+      <div class="status">${done?'✅':(missed?'⚠️':'')}</div>
+    </div>`;
+  }).join("") : `<div class="empty">Cap activitat aquest dia.</div>`;
+  return `<div class="day-expanded"><div class="day-expanded-title">${labelRaw}</div>${inner}</div>`;
+}
+
+/* ============ POPUP: ACCIÓ D'ACTIVITAT (Editar / Completar) ============ */
+function openActivityAction(activitatId, dStr){
+  const a = STATE.activitats.find(x=>String(x.ID)===String(activitatId));
+  if(!a) return;
+  const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
+  const done = isCompletat(a.ID, dStr);
+  const l = logEntry(a.ID, dStr);
+  const d = new Date(dStr+"T00:00:00");
   const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
 
-  let inner;
-  if(tasques.length===0){
-    inner = `<div class="empty">Cap tasca planificada per aquest dia.</div>`;
-  } else {
-    inner = cats.map(cat=>{
-      const color = CATEGORIA_COLOR[cat] || "var(--accent)";
-      const colorDim = CATEGORIA_COLOR_DIM[cat] || "var(--accent-dim)";
-      const rows = tasques.filter(t=>t.Categoria===cat).map(t=>{
-        const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-        const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-        const nota = rr ? (rr.Nota||"") : "";
-        const saludable = rr ? rr.Saludable : "";
-        const pag = CATEGORIA_PAGINA[cat];
-        const isPending = pendingHealthChoice && pendingHealthChoice.dStr===dStr && String(pendingHealthChoice.id)===String(t.ID);
-        const nomEsc = t.Nom.replace(/'/g,"\\'");
+  let detailsHtml = `<div class="row" style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:4px;"><span>${info.icon} ${info.label}</span><span class="mono">${a.HoraInici||''}${a.HoraFi?' - '+a.HoraFi:''}</span></div>`;
+  if(a.Exercicis) detailsHtml += `<div style="font-size:12.5px;white-space:pre-line;color:var(--text-muted);margin-top:6px;">${a.Exercicis}</div>`;
+  if(a.Kms) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);">📏 ${a.Kms} km${a.Desnivell?' · ⛰️ '+a.Desnivell+'m':''}</div>`;
+  if(a.Notes) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">${a.Notes}</div>`;
 
-        const checkBlock = isPending
-          ? `<div class="body">
-              <div class="name">${t.Nom}</div>
-              <div class="health-choice">
-                <button class="health-btn healthy" onclick="chooseHealth('${dStr}','${t.ID}','${cat}','${nomEsc}',true)">✅ Saludable</button>
-                <button class="health-btn unhealthy" onclick="chooseHealth('${dStr}','${t.ID}','${cat}','${nomEsc}',false)">❌ No saludable</button>
-                <span class="cancel-link" onclick="cancelHealthChoice()">Cancel·la</span>
-              </div>
-            </div>`
-          : `<div class="check ${fet?'done':''}" onclick="checkClick('${dStr}','${t.ID}','${cat}','${nomEsc}',${fet})">${fet?'✓':''}</div>
-            <div class="body">
-              <div class="name ${fet?'done':''}">${t.Nom}${fet && cat==="Àpats" && saludable!==""?(String(saludable).toUpperCase()==="TRUE"?' <span style="color:var(--accent);">●</span>':' <span style="color:var(--alert);">●</span>'):''}</div>
-              <input class="note" placeholder="+ nota..." value="${nota.replace(/"/g,'&quot;')}"
-                onchange="guardarNota('${dStr}','${t.ID}','${cat}','${nomEsc}', this.value)">
-            </div>`;
-
-        return `
-        <div class="task-row" data-id="${t.ID}" style="border-left:3px solid ${colorDim};">
-          ${checkBlock}
-          ${pag && !isPending?`<div class="detail-btn" title="Veure detall" onclick="goToCategoryPage('${cat}','${dStr}')">›</div>`:''}
-        </div>`;
-      }).join("");
-      return `<div class="section-title" style="color:${color};">${cat}</div>${rows}`;
-    }).join("");
+  let doneHtml = "";
+  if(done && l){
+    doneHtml = `<div style="background:var(--gym-bg);border-radius:11px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:var(--gym-text);">
+      ✅ Completada${l.Dificultat?` · Dificultat ${l.Dificultat}/10`:''}${l.Satisfaccio?` · Satisfacció ${l.Satisfaccio}/10`:''}
+      ${l.HoraEntradaReal?`<br>⏱️ ${l.HoraEntradaReal} - ${l.HoraSortidaReal||'?'}`:''}
+    </div>`;
   }
-  return `<div class="cal-expanded">
-    <div class="cal-expanded-title">${labelRaw}</div>
-    ${inner}
-  </div>`;
+
+  openModal(`
+    <h3 class="modal-title">${a.Nom || info.label}</h3>
+    <p style="font-size:12px;color:var(--text-muted);text-transform:capitalize;margin:-8px 0 12px;">${labelRaw}</p>
+    ${detailsHtml}
+    ${doneHtml}
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="openActivityForm('${a.ID}')">✎ Editar</button>
+      ${done
+        ? `<button class="btn-secondary" onclick="desferCompletat('${a.ID}','${dStr}')">↺ Desfer</button>`
+        : `<button class="btn-primary" style="flex:1;justify-content:center;" onclick="openCompleteForm('${a.ID}','${dStr}')">✓ Completar</button>`}
+    </div>
+    <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="eliminarActivitatClick('${a.ID}')">🗑 Eliminar aquesta activitat</button>
+  `);
+}
+async function desferCompletat(activitatId, dStr){
+  await apiPost("marcarCompletat", {activitatId, data:dStr, completat:false});
+  const l = logEntry(activitatId, dStr);
+  if(l) l.Completat = false;
+  closeModal();
+  renderCalendarView();
+  if(document.getElementById("page-stats").classList.contains("active")) renderStats();
+  showToast("Desmarcada");
+}
+async function eliminarActivitatClick(id){
+  if(!confirm("Segur que vols eliminar aquesta activitat? (s'elimina la programació sencera, no només un dia)")) return;
+  STATE.activitats = STATE.activitats.filter(a=>String(a.ID)!==String(id));
+  closeModal();
+  renderCalendarView();
+  await apiPost("eliminarActivitat", {id});
+  showToast("Activitat eliminada");
 }
 
-function goToCategoryPage(categoria, dStr){
-  const target = CATEGORIA_PAGINA[categoria];
-  if(!target) return;
-  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.querySelector(`.tab-btn[data-page="${target}"]`).classList.add("active");
-  document.getElementById("page-"+target).classList.add("active");
-  if(target==="matinal"){ matinalDate = new Date(dStr+"T00:00:00"); renderMatinalDetail(); }
-  else if(target==="rutines"){ rutinesDate = new Date(dStr+"T00:00:00"); renderRutinesDetail(); }
-  else if(target==="apats"){ apatsCalMonth = new Date(dStr+"T00:00:00"); apatsCalMonth.setDate(1); apatsExpandedDate = dStr; renderApatsCalendar(); }
-  else if(target==="entrenaments"){ entrenamentsCalMonth = new Date(dStr+"T00:00:00"); entrenamentsCalMonth.setDate(1); entrenamentsExpandedDate = dStr; renderEntrenamentsCalendar(); }
+/* ============ POPUP: COMPLETAR (dificultat + satisfacció) ============ */
+const SAT_EMOJIS = ["😖","😖","🙁","🙁","😐","😐","🙂","🙂","😄","😄"];
+function openCompleteForm(activitatId, dStr){
+  const a = STATE.activitats.find(x=>String(x.ID)===String(activitatId));
+  const isGym = a.Tipus==="Gym";
+  openModal(`
+    <h3 class="modal-title">Completar activitat</h3>
+    <div class="slider-wrap">
+      <div class="slider-label"><span style="font-size:12.5px;font-weight:600;">Grau de dificultat</span><span class="slider-val" id="diffVal">5</span></div>
+      <input type="range" id="diffSlider" min="1" max="10" value="5" oninput="document.getElementById('diffVal').textContent=this.value">
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-label"><span style="font-size:12.5px;font-weight:600;">Grau de satisfacció</span><span class="slider-emoji" id="satEmoji">😐</span></div>
+      <input type="range" id="satSlider" min="1" max="10" value="5" oninput="document.getElementById('satEmoji').textContent=SAT_EMOJIS[this.value-1]">
+    </div>
+    ${isGym ? `
+    <div class="form-grid2">
+      <div><label>Hora d'entrada</label><input type="time" id="horaEntradaReal"></div>
+      <div><label>Hora de sortida</label><input type="time" id="horaSortidaReal"></div>
+    </div>` : ""}
+    <label>Nota (opcional)</label>
+    <input id="completeNota" placeholder="Com t'ha anat...">
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="openActivityAction('${activitatId}','${dStr}')">Enrere</button>
+      <button class="btn-primary" style="flex:1;justify-content:center;" onclick="confirmarCompletat('${activitatId}','${dStr}')">Completar ✓</button>
+    </div>
+  `);
+}
+async function confirmarCompletat(activitatId, dStr){
+  const dificultat = document.getElementById("diffSlider").value;
+  const satisfaccio = document.getElementById("satSlider").value;
+  const nota = document.getElementById("completeNota").value;
+  const heInput = document.getElementById("horaEntradaReal");
+  const hsInput = document.getElementById("horaSortidaReal");
+  const body = {
+    activitatId, data:dStr, completat:true, dificultat, satisfaccio, notes:nota,
+    horaEntradaReal: heInput?heInput.value:"", horaSortidaReal: hsInput?hsInput.value:""
+  };
+  const existent = logEntry(activitatId, dStr);
+  if(existent){ Object.assign(existent, {Completat:true, Dificultat:dificultat, Satisfaccio:satisfaccio, Notes:nota, HoraEntradaReal:body.horaEntradaReal, HoraSortidaReal:body.horaSortidaReal}); }
+  else { STATE.log.push({ID:"tmp",ActivitatID:activitatId, Data:dStr, Completat:true, Dificultat:dificultat, Satisfaccio:satisfaccio, Notes:nota, HoraEntradaReal:body.horaEntradaReal, HoraSortidaReal:body.horaSortidaReal}); }
+  closeModal();
+  renderCalendarView();
+  showToast("Activitat completada 🎉");
+  await apiPost("marcarCompletat", body);
+  if(document.getElementById("page-stats").classList.contains("active")) renderStats();
 }
 
-/** Clic al check: per Àpats, si es marca com a fet (encara no ho estava), demana saludable/no saludable abans de desar. */
-function checkClick(dStr, id, categoria, nom, isDone){
-  if(categoria==="Àpats" && !isDone){
-    pendingHealthChoice = {dStr, id};
-    renderCalendar();
-    return;
-  }
-  toggleTasca(dStr, id, categoria, nom);
-}
-function cancelHealthChoice(){ pendingHealthChoice = null; renderCalendar(); }
-async function chooseHealth(dStr, id, categoria, nom, saludable){
-  pendingHealthChoice = null;
-  const reg = registreDia(dStr);
-  let existent = reg.find(r=>String(r.ID_Tasca)===String(id));
-  if(existent){ existent.Fet = true; existent.Saludable = saludable; }
-  else { STATE.registre.push({Data:dStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:true, Nota:"", Saludable:saludable}); existent = STATE.registre[STATE.registre.length-1]; }
-  renderCalendar(); computeStreak(); renderApatsCalendar();
-  await apiPost("marcarTasca", {data:dStr, idTasca:id, categoria, nom, fet:true, nota:existent.Nota||"", saludable});
-  showToast(saludable ? "Marcat com a saludable ✅" : "Marcat com a no saludable");
-}
+/* ============ POPUP: CREAR / EDITAR ACTIVITAT ============ */
+function openActivityForm(editId){
+  const a = editId ? STATE.activitats.find(x=>String(x.ID)===String(editId)) : null;
+  const tipus = a ? a.Tipus : "Gym";
+  const isRecurrent = a ? !a.DataPuntual : true;
+  const diesSel = a && a.DiesSetmana && a.DiesSetmana!=="Diari" ? a.DiesSetmana.split(",").map(s=>s.trim()) : [];
+  const diari = !a || !a.DiesSetmana || a.DiesSetmana==="Diari";
 
-async function toggleTasca(dataStr, id, categoria, nom){
-  const reg = registreDia(dataStr);
-  const existent = reg.find(r=>String(r.ID_Tasca)===String(id));
-  const nouEstat = !(existent && String(existent.Fet).toUpperCase()==="TRUE");
-  const nota = existent ? existent.Nota : "";
-  if(existent){ existent.Fet = nouEstat; }
-  else { STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:nouEstat, Nota:""}); }
-  renderCalendar(); computeStreak();
-  if(categoria==="Àpats") renderApatsCalendar();
-  await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet:nouEstat, nota});
-}
-async function guardarNota(dataStr, id, categoria, nom, valor){
-  const reg = registreDia(dataStr);
-  let existent = reg.find(r=>String(r.ID_Tasca)===String(id));
-  const fet = existent ? existent.Fet : false;
-  if(existent){ existent.Nota = valor; } else {
-    STATE.registre.push({Data:dataStr, ID_Tasca:id, Categoria:categoria, Nom:nom, Fet:fet, Nota:valor});
-  }
-  await apiPost("marcarTasca", {data:dataStr, idTasca:id, categoria, nom, fet, nota:valor});
-  showToast("Nota desada");
-}
-
-/* ============ MATINAL / RUTINES (vista de dia enfocat) ============ */
-let matinalDate = new Date();
-let rutinesDate = new Date();
-
-function changeFocusDay(pagina, delta){
-  if(pagina==="matinal"){ matinalDate.setDate(matinalDate.getDate()+delta); renderMatinalDetail(); }
-  else { rutinesDate.setDate(rutinesDate.getDate()+delta); renderRutinesDetail(); }
-}
-
-function renderMatinalDetail(){
-  const dStr = fmt(matinalDate);
-  const isToday = dStr===fmt(new Date());
-  document.getElementById("matinalDateLabel").textContent =
-    (isToday?"Avui · ":"") + matinalDate.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  const codi = diaCodi(matinalDate);
-  const rutinaExercicis = STATE.rutinesMati
-    .filter(r=> String(r.Actiu).toUpperCase()!=="FALSE" && (r.Dia==="Diari" || r.Dia===codi))
-    .sort((a,b)=>(a.Ordre||99)-(b.Ordre||99));
-
-  const reg = registreDia(dStr);
-  const rr = reg.find(r=>String(r.ID_Tasca)==="rutina_mati");
-  const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-  const pctEl = document.getElementById("matinalPct");
-  pctEl.textContent = rutinaExercicis.length ? (fet ? "Feta ✓" : "Pendent") : "–";
-  pctEl.style.color = fet ? "var(--accent)" : "var(--amber)";
-
-  const cont = document.getElementById("matinalContent");
-  if(!rutinaExercicis.length){ cont.innerHTML = `<div class="empty">Cap exercici planificat per aquest dia.</div>`; return; }
-  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick des del calendari d'Avui.</p>` +
-    rutinaExercicis.map(r=>`<div class="card">
-      <div class="row"><span class="k">${r.Nom}</span></div>
-      <div class="row"><span class="k">Tipus</span><span class="v">${r.Tipus||"–"}</span></div>
-      ${r.Durada_min?`<div class="row"><span class="k">Durada</span><span class="v">~${r.Durada_min} min</span></div>`:""}
-    </div>`).join("");
-}
-
-function renderRutinesDetail(){
-  const dStr = fmt(rutinesDate);
-  const isToday = dStr===fmt(new Date());
-  document.getElementById("rutinesDateLabel").textContent =
-    (isToday?"Avui · ":"") + rutinesDate.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  const tasques = tasksByCategoria("Rutines", dStr);
-  const reg = registreDia(dStr);
-  const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-  document.getElementById("rutinesPct").textContent = tasques.length ? Math.round((fetes/tasques.length)*100)+"%" : "–";
-
-  const cont = document.getElementById("rutinesContent");
-  if(!tasques.length){ cont.innerHTML = `<div class="empty">Cap rutina planificada per aquest dia.</div>`; return; }
-  cont.innerHTML = `<p style="color:var(--text-muted);font-size:12px;margin:0 0 12px;">Vista informativa — marca el tick des del calendari d'Avui.</p>` +
-    tasques.map(t=>{
-      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-      const fet = rr && String(rr.Fet).toUpperCase()==="TRUE";
-      return `<div class="card">
-        <div class="row">
-          <span class="k">${fet?'✓ ':''}${t.Nom}</span>
-          <span class="v" style="color:${fet?'var(--accent)':'var(--text-muted)'}">${fet?'Fet':'Pendent'}</span>
-        </div>
-      </div>`;
-    }).join("");
-}
-
-/* ============ ÀPATS ============ */
-let apatsCalMonth = new Date(); apatsCalMonth.setDate(1);
-let apatsExpandedDate = fmt(new Date());
-
-function changeApatsMonth(delta){ apatsCalMonth.setMonth(apatsCalMonth.getMonth()+delta); renderApatsCalendar(); }
-function toggleApatsExpand(dStr){ apatsExpandedDate = (apatsExpandedDate===dStr)?null:dStr; renderApatsCalendar(); }
-function renderApatsCalendar(){
-  const {html, title} = buildCalendarHTML(apatsCalMonth, apatsExpandedDate,
-    dStr=>{ const has = STATE.apats.some(a=>a.Data===dStr); return {cls:"full", dot:has}; },
-    renderApatsDayPanel, "toggleApatsExpand");
-  document.getElementById("apatsCalTitle").textContent = title;
-  document.getElementById("apatsCalGrid").innerHTML = html;
-}
-let apatEditingId = null;
-
-function selOpts(options, selected){
-  return options.map(o=>`<option ${o===selected?'selected':''}>${o}</option>`).join('');
-}
-
-function renderApatsDayPanel(dStr){
-  const items = STATE.apats.filter(a=>a.Data===dStr);
-  const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-  const editingItem = apatEditingId ? items.find(a=>String(a.ID)===String(apatEditingId)) : null;
-
-  const regDia = STATE.registre.filter(r=>r.Data===dStr && r.Categoria==="Àpats" && String(r.Fet).toUpperCase()==="TRUE");
-  const checklistHtml = regDia.length ? `<div class="log-subtitle">Compliment del dia (des del calendari)</div>
-    <div class="card">${regDia.map(r=>{
-      const sal = r.Saludable;
-      const badge = sal===""||sal===undefined ? "" : (String(sal).toUpperCase()==="TRUE" ? ` <span style="color:var(--accent);">● Saludable</span>` : ` <span style="color:var(--alert);">● No saludable</span>`);
-      return `<div class="row"><span class="k">✓ ${r.Nom}</span><span class="v" style="font-size:11px;">${badge}</span></div>`;
-    }).join("")}</div>` : "";
-
-  const ORDRE_APATS = ["Esmorzar","Dinar","Sopar","Snack"];
-  const inner = items.length
-    ? `<div class="log-subtitle">Registrat (${items.length})</div>` + ORDRE_APATS.filter(tipus=>items.some(a=>a.Apat===tipus)).map(tipus=>{
-        const rows = items.filter(a=>a.Apat===tipus).map(a=>`<div class="card">
-          <div class="card-head">
-            <span class="k">${a.Descripcio}</span>
-            ${a.ID?`<div class="icon-row">
-              <div class="icon-btn" onclick="startEditApat('${a.ID}')">✎</div>
-              <div class="icon-btn danger" onclick="eliminarApatClick('${a.ID}')">🗑</div>
-            </div>`:''}
-          </div>
-          ${a.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${a.Nota}</div>`:""}
-          ${a.Foto?`<img src="${a.Foto}" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-top:8px;">`:""}
-        </div>`).join("");
-        return `<div class="section-title" style="color:var(--purple);margin-top:14px;">${tipus}</div>${rows}`;
-      }).join("")
-    : `<div class="empty">Cap àpat registrat aquest dia.</div>`;
-  const isEdit = !!editingItem;
-  const previewSrc = editingItem && editingItem.Foto ? editingItem.Foto : "";
-  return `<div class="cal-expanded">
-    <div class="cal-expanded-title">${labelRaw}</div>
-    ${checklistHtml}
-    ${inner}
-    <div class="add-box ${isEdit?'editing':''}">
-      <div class="add-box-title">
-        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant àpat':'Afegir a aquest dia'}</span>
-        ${isEdit?`<span class="cancel-link" onclick="cancelEditApat()">Cancel·la</span>`:''}
+  openModal(`
+    <h3 class="modal-title">${editId?'Editar activitat':'Nova activitat'}</h3>
+    <div class="form">
+      <label>Tipus</label>
+      <div class="type-picker" id="typePicker">
+        <button type="button" class="sel-gym ${tipus==='Gym'?'active':''}" onclick="selectTipus('Gym')">🏋️ Gym</button>
+        <button type="button" class="sel-classe ${tipus==='Classe Gym'?'active':''}" onclick="selectTipus('Classe Gym')">🧘 Classe</button>
+        <button type="button" class="sel-exterior ${tipus==='Exterior'?'active':''}" onclick="selectTipus('Exterior')">🏃 Exterior</button>
       </div>
-      <div class="form">
-        <label>Àpat</label>
-        <select id="apatTipus_${dStr}">${selOpts(['Esmorzar','Dinar','Sopar','Snack'], editingItem?editingItem.Apat:'Esmorzar')}</select>
-        <label>Descripció</label>
-        <input id="apatDesc_${dStr}" placeholder="Què vas menjar..." value="${editingItem?String(editingItem.Descripcio||'').replace(/"/g,'&quot;'):''}">
-        <label>Nota (opcional)</label>
-        <input id="apatNota_${dStr}" placeholder="Sensacions, quantitat..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
-        <label>Foto (opcional)</label>
-        <input type="file" accept="image/*" id="apatFotoInput_${dStr}" onchange="previewApatFoto('${dStr}')">
-        <img id="apatFotoPreview_${dStr}" src="${previewSrc}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:8px 0;display:${previewSrc?'block':'none'};">
-        <button class="submit" onclick="guardarApatDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
+      <input type="hidden" id="actTipus" value="${tipus}">
+
+      <label>Nom</label>
+      <input id="actNom" placeholder="Cames, Spinning, Running matí..." value="${a?String(a.Nom||'').replace(/"/g,'&quot;'):''}">
+
+      <label>Recurrència</label>
+      <div class="recur-toggle" id="recurToggle">
+        <button type="button" class="${isRecurrent?'active':''}" onclick="selectRecur(true)">Periòdic</button>
+        <button type="button" class="${!isRecurrent?'active':''}" onclick="selectRecur(false)">Dia puntual</button>
+      </div>
+
+      <div id="recurrentFields" style="display:${isRecurrent?'block':'none'};">
+        <label>Dies de la setmana</label>
+        <div class="day-chips" id="dayChips">
+          ${["L","M","X","J","V","S","D"].map(c=>`<button type="button" data-dia="${c}" class="${diari?'':(diesSel.includes(c)?'active':'')}" onclick="toggleDiaChip(this)">${c}</button>`).join("")}
+        </div>
+        <p style="font-size:10.5px;color:var(--text-muted);margin:6px 0 0;">Cap dia marcat = diari</p>
+      </div>
+      <div id="puntualFields" style="display:${isRecurrent?'none':'block'};">
+        <label>Data</label>
+        <input type="date" id="actDataPuntual" value="${a?a.DataPuntual||'':''}">
+      </div>
+
+      <div class="form-grid2">
+        <div><label>Hora d'inici</label><input type="time" id="actHoraInici" value="${a?a.HoraInici||'':''}"></div>
+        <div><label id="horaFiLabel">Hora de fi</label><input type="time" id="actHoraFi" value="${a?a.HoraFi||'':''}"></div>
+      </div>
+
+      <div id="gymFields" style="display:none;">
+        <label>Durada estimada (min) — si no poses hora de fi</label>
+        <input id="actDuradaMin" type="number" placeholder="60" value="${a?a.DuradaMin||'':''}">
+        <label>Exercicis (opcional)</label>
+        <textarea id="actExercicis" placeholder="Press banca 4x10 60kg&#10;Squat 3x8 80kg">${a?a.Exercicis||'':''}</textarea>
+      </div>
+      <div id="exteriorFields" style="display:none;">
+        <div class="form-grid2">
+          <div><label>Km (opcional)</label><input id="actKms" type="number" step="0.1" value="${a?a.Kms||'':''}"></div>
+          <div><label>Desnivell m (opcional)</label><input id="actDesnivell" type="number" value="${a?a.Desnivell||'':''}"></div>
+        </div>
+      </div>
+
+      <label>Notes (opcional)</label>
+      <input id="actNotes" placeholder="..." value="${a?String(a.Notes||'').replace(/"/g,'&quot;'):''}">
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cancel·la</button>
+        <button class="btn-primary" style="flex:1;justify-content:center;" onclick="guardarActivitat(${editId?`'${editId}'`:'null'})">${editId?'Desar canvis':'Crear'}</button>
       </div>
     </div>
-  </div>`;
+  `);
+  updateTypeFieldsVisibility(tipus);
 }
-let pendingApatFoto = {};
-function previewApatFoto(dStr){
-  const input = document.getElementById(`apatFotoInput_${dStr}`);
-  const file = input.files && input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e)=>{
-    const img = new Image();
-    img.onload = ()=>{
-      const maxW = 1000;
-      const scale = Math.min(1, maxW/img.width);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width*scale;
-      canvas.height = img.height*scale;
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-      pendingApatFoto[dStr] = dataUrl;
-      const prev = document.getElementById(`apatFotoPreview_${dStr}`);
-      prev.src = dataUrl;
-      prev.style.display = "block";
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+function selectTipus(t){
+  document.getElementById("actTipus").value = t;
+  document.querySelectorAll("#typePicker button").forEach(b=>b.classList.remove("active"));
+  document.querySelector(`#typePicker .sel-${t==='Gym'?'gym':(t==='Classe Gym'?'classe':'exterior')}`).classList.add("active");
+  updateTypeFieldsVisibility(t);
 }
-async function guardarApatDia(dStr){
+function updateTypeFieldsVisibility(t){
+  document.getElementById("gymFields").style.display = t==="Gym" ? "block":"none";
+  document.getElementById("exteriorFields").style.display = t==="Exterior" ? "block":"none";
+  document.getElementById("horaFiLabel").textContent = t==="Gym" ? "Hora de fi (opcional)" : "Hora de fi";
+}
+function selectRecur(isRecur){
+  document.querySelectorAll("#recurToggle button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll("#recurToggle button")[isRecur?0:1].classList.add("active");
+  document.getElementById("recurrentFields").style.display = isRecur ? "block":"none";
+  document.getElementById("puntualFields").style.display = isRecur ? "none":"block";
+}
+function toggleDiaChip(btn){ btn.classList.toggle("active"); }
+
+async function guardarActivitat(editId){
+  const tipus = document.getElementById("actTipus").value;
+  const nom = document.getElementById("actNom").value.trim();
+  const isRecur = document.querySelectorAll("#recurToggle button")[0].classList.contains("active");
+  const diesActius = [...document.querySelectorAll("#dayChips button.active")].map(b=>b.dataset.dia);
+  const diesSetmana = isRecur ? (diesActius.length? diesActius.join(",") : "Diari") : "";
+  const dataPuntual = isRecur ? "" : document.getElementById("actDataPuntual").value;
+  const horaInici = document.getElementById("actHoraInici").value;
+  const horaFi = document.getElementById("actHoraFi").value;
+
+  if(!nom){ showToast("Escriu un nom"); return; }
+  if(!horaInici){ showToast("Indica l'hora d'inici"); return; }
+  if(isRecur===false && !dataPuntual){ showToast("Indica la data"); return; }
+
   const body = {
-    data: dStr,
-    apat: document.getElementById(`apatTipus_${dStr}`).value,
-    descripcio: document.getElementById(`apatDesc_${dStr}`).value,
-    nota: document.getElementById(`apatNota_${dStr}`).value
+    tipus, nom, diesSetmana, dataPuntual, horaInici, horaFi,
+    duradaMin: document.getElementById("actDuradaMin").value,
+    exercicis: document.getElementById("actExercicis").value,
+    kms: document.getElementById("actKms").value,
+    desnivell: document.getElementById("actDesnivell").value,
+    notes: document.getElementById("actNotes").value
   };
-  if(pendingApatFoto[dStr]) body.foto = pendingApatFoto[dStr];
-  if(!body.descripcio){ showToast("Escriu una descripció"); return; }
-  if(apatEditingId){
-    body.id = apatEditingId;
-    const idx = STATE.apats.findIndex(a=>String(a.ID)===String(apatEditingId));
-    const fotoPrevia = idx>-1 ? STATE.apats[idx].Foto : "";
-    if(idx>-1) STATE.apats[idx] = {ID:apatEditingId, Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, Foto:body.foto||fotoPrevia};
-    apatEditingId = null;
-    delete pendingApatFoto[dStr];
-    renderApatsCalendar();
-    showToast(body.foto ? "Desant àpat i pujant foto..." : "Àpat actualitzat");
-    const r = await apiPost("editarApat", body);
-    if(r && r.foto){ const it=STATE.apats.find(a=>String(a.ID)===String(apatEditingId)); if(it) it.Foto=r.foto; renderApatsCalendar(); }
-    if(body.foto) showToast("Foto pujada ✅");
+
+  closeModal();
+  if(editId){
+    body.id = editId;
+    const idx = STATE.activitats.findIndex(a=>String(a.ID)===String(editId));
+    if(idx>-1) STATE.activitats[idx] = {...STATE.activitats[idx], Tipus:tipus, Nom:nom, DiesSetmana:diesSetmana, DataPuntual:dataPuntual, HoraInici:horaInici, HoraFi:horaFi, DuradaMin:body.duradaMin, Exercicis:body.exercicis, Kms:body.kms, Desnivell:body.desnivell, Notes:body.notes};
+    renderCalendarView();
+    await apiPost("editarActivitat", body);
+    showToast("Activitat actualitzada");
   } else {
-    STATE.apats.unshift({Data:body.data, Apat:body.apat, Descripcio:body.descripcio, Nota:body.nota, ID:null, Foto:""});
-    delete pendingApatFoto[dStr];
-    renderApatsCalendar();
-    showToast(body.foto ? "Desant àpat i pujant foto..." : "Àpat afegit");
-    const r = await apiPost("afegirApat", body);
-    if(r && r.id && STATE.apats[0]){ STATE.apats[0].ID = r.id; if(r.foto) STATE.apats[0].Foto = r.foto; renderApatsCalendar(); }
-    if(body.foto) showToast("Foto pujada ✅"); else showToast("Àpat afegit");
-  }
-}
-function startEditApat(id){ apatEditingId = id; renderApatsCalendar(); }
-function cancelEditApat(){ apatEditingId = null; renderApatsCalendar(); }
-async function eliminarApatClick(id){
-  if(!confirm("Segur que vols eliminar aquest àpat?")) return;
-  STATE.apats = STATE.apats.filter(a=>String(a.ID)!==String(id));
-  renderApatsCalendar();
-  await apiPost("eliminarApat", {id});
-  showToast("Àpat eliminat");
-}
-
-/* ============ GIMNÀS ============ */
-let entrenamentsCalMonth = new Date(); entrenamentsCalMonth.setDate(1);
-let entrenamentsExpandedDate = fmt(new Date());
-
-function changeEntrenamentsMonth(delta){ entrenamentsCalMonth.setMonth(entrenamentsCalMonth.getMonth()+delta); renderEntrenamentsCalendar(); }
-function toggleEntrenamentsExpand(dStr){ entrenamentsExpandedDate = (entrenamentsExpandedDate===dStr)?null:dStr; renderEntrenamentsCalendar(); }
-function renderEntrenamentsCalendar(){
-  const {html, title} = buildCalendarHTML(entrenamentsCalMonth, entrenamentsExpandedDate,
-    dStr=>{
-      const dayItems = STATE.entrenos.filter(e=>e.Data===dStr);
-      if(!dayItems.length) return {cls:"", dot:false};
-      const hasGym = dayItems.some(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
-      const hasCardio = dayItems.some(e=>e.Tipus==="Cardio");
-      const cls = hasGym ? "full" : (hasCardio ? "blue" : "full");
-      return {cls, dot:true};
-    },
-    renderEntrenamentsDayPanel, "toggleEntrenamentsExpand");
-  document.getElementById("entrenamentsCalTitle").textContent = title;
-  document.getElementById("entrenamentsCalGrid").innerHTML = html;
-}
-let entrenamentsEditingId = null;
-
-function fmtDuracio(min){
-  min = Number(min) || 0;
-  const h = Math.floor(min/60), m = min%60;
-  if(h===0) return m+"min";
-  if(m===0) return h+"h";
-  return h+"h "+m+"min";
-}
-
-function renderEntrenamentsDayPanel(dStr){
-  const items = STATE.entrenos.filter(e=>e.Data===dStr);
-  const labelRaw = new Date(dStr+"T00:00:00").toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-  const editingItem = entrenamentsEditingId ? items.find(e=>String(e.ID)===String(entrenamentsEditingId)) : null;
-
-  const gimnasItems = items.filter(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
-  const cardioItems = items.filter(e=>e.Tipus==="Cardio");
-
-  const cardHtml = (e, cardioClass)=>`<div class="card ${cardioClass?'cardio':''}">
-        <div class="card-head">
-          <span class="k">${cardioClass ? (e.Subtipus||"Cardio") : e.Exercici}</span>
-          ${e.ID?`<div class="icon-row">
-            <div class="icon-btn" onclick="startEditEntreno('${e.ID}')">✎</div>
-            <div class="icon-btn danger" onclick="eliminarEntrenoClick('${e.ID}')">🗑</div>
-          </div>`:''}
-        </div>
-        ${cardioClass
-          ? `<div class="row"><span class="k">Durada</span><span class="v">${fmtDuracio(e.Minuts)}</span></div>
-             ${e.Kms?`<div class="row"><span class="k">Distància</span><span class="v">${e.Kms} km</span></div>`:""}`
-          : `<div class="row"><span class="k">Sèries × Reps</span><span class="v">${e.Series||"–"} × ${e.Reps||"–"}</span></div>
-             <div class="row"><span class="k">Pes</span><span class="v">${e.Pes_kg?e.Pes_kg+" kg":"–"}</span></div>`}
-        ${e.Nota?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.Nota}</div>`:""}
-      </div>`;
-
-  let inner = "";
-  if(!items.length){
-    inner = `<div class="empty">Cap entrenament registrat aquest dia.</div>`;
-  } else {
-    if(gimnasItems.length) inner += `<div class="type-badge gym"><span class="dot"></span>Gimnàs · ${gimnasItems.length}</div>` + gimnasItems.map(e=>cardHtml(e,false)).join("");
-    if(cardioItems.length) inner += `<div class="type-badge cardio"><span class="dot"></span>Cardio · ${cardioItems.length}</div>` + cardioItems.map(e=>cardHtml(e,true)).join("");
-  }
-
-  const isEdit = !!editingItem;
-  const tipusActual = editingItem ? (editingItem.Tipus||"Gimnàs") : "Gimnàs";
-  const showGym = tipusActual==="Gimnàs", showCardio = tipusActual==="Cardio";
-
-  return `<div class="cal-expanded">
-    <div class="cal-expanded-title">${labelRaw}</div>
-    ${inner}
-    <div class="add-box ${isEdit?'editing':''}">
-      <div class="add-box-title">
-        <span class="label"><span class="plus">${isEdit?'✎':'+'}</span>${isEdit?'Editant entrenament':'Afegir a aquest dia'}</span>
-        ${isEdit?`<span class="cancel-link" onclick="cancelEditEntreno()">Cancel·la</span>`:''}
-      </div>
-      <div class="form">
-        <label>Tipus d'entrenament</label>
-        <select id="entTipus_${dStr}" onchange="toggleEntTipus('${dStr}')">
-          <option ${showGym?'selected':''}>Gimnàs</option>
-          <option ${showCardio?'selected':''}>Cardio</option>
-        </select>
-
-        <div id="entGimnasFields_${dStr}" style="display:${showGym?'block':'none'};">
-          <div class="grid">
-            <div><label>Exercici</label><input id="entExercici_${dStr}" placeholder="Press banca" value="${editingItem&&showGym?String(editingItem.Exercici||'').replace(/"/g,'&quot;'):''}"></div>
-            <div><label>Pes (kg)</label><input id="entPes_${dStr}" type="number" step="0.5" value="${editingItem&&showGym?editingItem.Pes_kg||'':''}"></div>
-            <div><label>Sèries</label><input id="entSeries_${dStr}" type="number" value="${editingItem&&showGym?editingItem.Series||'':''}"></div>
-            <div><label>Reps</label><input id="entReps_${dStr}" type="number" value="${editingItem&&showGym?editingItem.Reps||'':''}"></div>
-          </div>
-        </div>
-
-        <div id="entCardioFields_${dStr}" style="display:${showCardio?'block':'none'};">
-          <label>Tipus de cardio</label>
-          <select id="entSubtipus_${dStr}">${selOpts(['Futbol','Running','Caminar','Altres'], editingItem?editingItem.Subtipus:'Futbol')}</select>
-          <div class="grid">
-            <div><label>Temps (minuts)</label><input id="entMinuts_${dStr}" type="number" placeholder="60" value="${editingItem&&showCardio?editingItem.Minuts||'':''}"></div>
-            <div><label>Km (opcional)</label><input id="entKms_${dStr}" type="number" step="0.1" placeholder="5" value="${editingItem&&showCardio?editingItem.Kms||'':''}"></div>
-          </div>
-        </div>
-
-        <label>Nota (opcional)</label>
-        <input id="entNota_${dStr}" placeholder="RPE, sensacions..." value="${editingItem?String(editingItem.Nota||'').replace(/"/g,'&quot;'):''}">
-        <button class="submit" onclick="guardarEntrenoDia('${dStr}')">${isEdit?'Desar canvis':'Afegir'}</button>
-      </div>
-    </div>
-  </div>`;
-}
-function toggleEntTipus(dStr){
-  const v = document.getElementById(`entTipus_${dStr}`).value;
-  document.getElementById(`entGimnasFields_${dStr}`).style.display = v==="Gimnàs" ? "block" : "none";
-  document.getElementById(`entCardioFields_${dStr}`).style.display = v==="Cardio" ? "block" : "none";
-}
-async function guardarEntrenoDia(dStr){
-  const tipus = document.getElementById(`entTipus_${dStr}`).value;
-  const body = { data: dStr, tipus, nota: document.getElementById(`entNota_${dStr}`).value };
-  let novaEntrada;
-  if(tipus==="Gimnàs"){
-    body.exercici = document.getElementById(`entExercici_${dStr}`).value;
-    body.pes = document.getElementById(`entPes_${dStr}`).value;
-    body.series = document.getElementById(`entSeries_${dStr}`).value;
-    body.reps = document.getElementById(`entReps_${dStr}`).value;
-    if(!body.exercici){ showToast("Escriu l'exercici"); return; }
-    novaEntrada = {Data:body.data, Tipus:"Gimnàs", Exercici:body.exercici, Series:body.series, Reps:body.reps, Pes_kg:body.pes, Subtipus:"", Minuts:"", Kms:"", Nota:body.nota};
-  } else {
-    body.subtipus = document.getElementById(`entSubtipus_${dStr}`).value;
-    body.minuts = document.getElementById(`entMinuts_${dStr}`).value;
-    body.kms = document.getElementById(`entKms_${dStr}`).value;
-    if(!body.minuts){ showToast("Indica els minuts"); return; }
-    novaEntrada = {Data:body.data, Tipus:"Cardio", Exercici:"", Series:"", Reps:"", Pes_kg:"", Subtipus:body.subtipus, Minuts:body.minuts, Kms:body.kms, Nota:body.nota};
-  }
-
-  if(entrenamentsEditingId){
-    body.id = entrenamentsEditingId;
-    const idx = STATE.entrenos.findIndex(e=>String(e.ID)===String(entrenamentsEditingId));
-    if(idx>-1) STATE.entrenos[idx] = {...novaEntrada, ID:entrenamentsEditingId};
-    entrenamentsEditingId = null;
-    renderEntrenamentsCalendar();
-    await apiPost("editarEntreno", body);
-    showToast("Entrenament actualitzat");
-  } else {
-    STATE.entrenos.unshift({...novaEntrada, ID:null});
-    renderEntrenamentsCalendar();
-    const r = await apiPost("afegirEntreno", body);
-    if(r && r.id && STATE.entrenos[0]) STATE.entrenos[0].ID = r.id;
-    showToast("Entrenament afegit");
-  }
-}
-function startEditEntreno(id){ entrenamentsEditingId = id; renderEntrenamentsCalendar(); }
-function cancelEditEntreno(){ entrenamentsEditingId = null; renderEntrenamentsCalendar(); }
-async function eliminarEntrenoClick(id){
-  if(!confirm("Segur que vols eliminar aquest entrenament?")) return;
-  STATE.entrenos = STATE.entrenos.filter(e=>String(e.ID)!==String(id));
-  renderEntrenamentsCalendar();
-  await apiPost("eliminarEntreno", {id});
-  showToast("Entrenament eliminat");
-}
-
-/* ============ ADMIN: TASQUES ============ */
-let tascaEditingId = null;
-
-function omplirFormTasca(t){
-  document.getElementById("tascaCategoria").value = t ? t.Categoria : "";
-  document.getElementById("tascaNom").value = t ? t.Nom : "";
-  document.getElementById("tascaDies").value = t ? (t.Dies || "Diari") : "Diari";
-  document.getElementById("tascaData").value = t && t.Data ? t.Data : "";
-  document.getElementById("tascaOrdre").value = t ? t.Ordre : "";
-}
-function startEditTasca(id){
-  const t = STATE.tasques.find(x=>String(x.ID)===String(id));
-  if(!t) return;
-  tascaEditingId = id;
-  omplirFormTasca(t);
-  document.getElementById("tascaFormTitle").textContent = "Editant tasca";
-  document.getElementById("tascaAddBox").classList.add("editing");
-  document.getElementById("tascaCancelLink").style.display = "inline";
-  document.getElementById("tascaSubmitBtn").textContent = "Desar canvis";
-  document.getElementById("tascaCategoria").scrollIntoView({behavior:"smooth", block:"center"});
-}
-function cancelEditTasca(){
-  tascaEditingId = null;
-  omplirFormTasca(null);
-  document.getElementById("tascaFormTitle").textContent = "Nova tasca";
-  document.getElementById("tascaAddBox").classList.remove("editing");
-  document.getElementById("tascaCancelLink").style.display = "none";
-  document.getElementById("tascaSubmitBtn").textContent = "Afegir tasca";
-}
-async function guardarTasca(){
-  const categoria = document.getElementById("tascaCategoria").value.trim();
-  const nom = document.getElementById("tascaNom").value.trim();
-  const dies = document.getElementById("tascaDies").value.trim() || "Diari";
-  const data = document.getElementById("tascaData").value || "";
-  const ordre = document.getElementById("tascaOrdre").value || 99;
-  if(!categoria || !nom){ showToast("Omple categoria i nom"); return; }
-
-  if(tascaEditingId){
-    const idx = STATE.tasques.findIndex(x=>String(x.ID)===String(tascaEditingId));
-    if(idx>-1) STATE.tasques[idx] = {...STATE.tasques[idx], Categoria:categoria, Nom:nom, Dies:dies, Data:data, Ordre:ordre};
-    renderCalendar(); renderMatinalDetail(); renderRutinesDetail(); renderAdminTasquesList();
-    await apiPost("editarTasca", {id:tascaEditingId, categoria, nom, dies, data, actiu:true, ordre});
-    showToast("Tasca actualitzada");
-    cancelEditTasca();
-  } else {
-    STATE.tasques.push({ID:"tmp_"+Date.now(), Categoria:categoria, Nom:nom, Dies:dies, Data:data, Actiu:true, Ordre:ordre});
-    renderAdminTasquesList();
-    const r = await apiPost("afegirTasca", {categoria, nom, dies, data, ordre});
+    renderCalendarView();
+    const r = await apiPost("afegirActivitat", body);
     await loadAll();
-    showToast(data ? "Tasca puntual afegida" : "Tasca afegida");
-    omplirFormTasca(null);
+    showToast("Activitat creada");
   }
-}
-async function eliminarTascaClick(id){
-  if(!confirm("Segur que vols eliminar aquesta tasca? S'esborrarà de la planificació (l'historial ja registrat es manté).")) return;
-  STATE.tasques = STATE.tasques.filter(x=>String(x.ID)!==String(id));
-  renderCalendar(); renderMatinalDetail(); renderRutinesDetail(); renderAdminTasquesList();
-  await apiPost("eliminarTasca", {id});
-  showToast("Tasca eliminada");
-}
-function renderAdminTasquesList(){
-  const cont = document.getElementById("adminTasquesList");
-  if(!cont) return;
-  if(!STATE.tasques.length){ cont.innerHTML = `<div class="empty">Encara no hi ha tasques.</div>`; return; }
-  const porCategoria = {};
-  STATE.tasques.forEach(t=>{ (porCategoria[t.Categoria] = porCategoria[t.Categoria]||[]).push(t); });
-  cont.innerHTML = Object.keys(porCategoria).map(cat=>{
-    const rows = porCategoria[cat].map(t=>`
-      <div class="card">
-        <div class="card-head">
-          <span style="font-size:14px;">${t.Nom}${t.Data?` <span style="color:var(--amber);font-size:11px;">· puntual</span>`:''}</span>
-          <div class="icon-row">
-            <div class="icon-btn" onclick="startEditTasca('${t.ID}')">✎</div>
-            <div class="icon-btn danger" onclick="eliminarTascaClick('${t.ID}')">🗑</div>
-          </div>
-        </div>
-        <div class="row"><span class="k">${t.Data?"Data":"Dies"}</span><span class="v">${t.Data || t.Dies}</span></div>
-        <div class="row"><span class="k">Activa</span><span class="v">${String(t.Actiu).toUpperCase()==="TRUE"?"Sí":"No"}</span></div>
-      </div>`).join("");
-    return `<div class="section-title">${cat}</div>${rows}`;
-  }).join("");
-}
-
-/* ============ ADMIN: MESURES ============ */
-async function afegirMesuraAdmin(){
-  const data = document.getElementById("mesuraData").value || fmt(new Date());
-  const body = {
-    data,
-    pes: document.getElementById("mesuraPes").value,
-    greix: document.getElementById("mesuraGreix").value,
-    cintura: document.getElementById("mesuraCintura").value,
-    nota: document.getElementById("mesuraNota").value
-  };
-  if(!body.pes){ showToast("Introdueix almenys el pes"); return; }
-  STATE.mesures.push({Data:body.data, Pes_kg:body.pes, Greix_pct:body.greix, Cintura_cm:body.cintura, Nota:body.nota});
-  ["mesuraPes","mesuraGreix","mesuraCintura","mesuraNota"].forEach(id=>document.getElementById(id).value="");
-  renderAdminMesuresList(); renderStats();
-  await apiPost("afegirMesura", body);
-  showToast("Mesura afegida");
-}
-function renderAdminMesuresList(){
-  const cont = document.getElementById("adminMesuresList");
-  if(!cont) return;
-  const items = [...STATE.mesures].sort((a,b)=>b.Data.localeCompare(a.Data)).slice(0,15);
-  cont.innerHTML = items.length ? items.map(m=>`<div class="card">
-      <div class="row"><span class="k">${m.Data}</span><span class="v">${m.Pes_kg?m.Pes_kg+" kg":"–"}</span></div>
-      ${m.Greix_pct?`<div class="row"><span class="k">Greix</span><span class="v">${m.Greix_pct}%</span></div>`:""}
-      ${m.Cintura_cm?`<div class="row"><span class="k">Cintura</span><span class="v">${m.Cintura_cm} cm</span></div>`:""}
-    </div>`).join("") : `<div class="empty">Encara no hi ha mesures.</div>`;
-}
-
-/* ============ ADMIN: RUTINES MATINALS ============ */
-let rutinaEditingId = null;
-
-function omplirFormRutina(r){
-  document.getElementById("rutinaDia").value = r ? r.Dia : "Diari";
-  document.getElementById("rutinaNom").value = r ? r.Nom : "";
-  document.getElementById("rutinaTipus").value = r ? r.Tipus : "Mobilitat";
-  document.getElementById("rutinaDurada").value = r ? r.Durada_min : "";
-  document.getElementById("rutinaOrdre").value = r ? r.Ordre : "";
-}
-function startEditRutina(id){
-  const r = STATE.rutinesMati.find(x=>String(x.ID)===String(id));
-  if(!r) return;
-  rutinaEditingId = id;
-  omplirFormRutina(r);
-  document.getElementById("rutinaFormTitle").textContent = "Editant exercici";
-  document.getElementById("rutinaAddBox").classList.add("editing");
-  document.getElementById("rutinaCancelLink").style.display = "inline";
-  document.getElementById("rutinaSubmitBtn").textContent = "Desar canvis";
-}
-function cancelEditRutina(){
-  rutinaEditingId = null;
-  omplirFormRutina(null);
-  document.getElementById("rutinaFormTitle").textContent = "Nou exercici";
-  document.getElementById("rutinaAddBox").classList.remove("editing");
-  document.getElementById("rutinaCancelLink").style.display = "none";
-  document.getElementById("rutinaSubmitBtn").textContent = "Afegir exercici";
-}
-async function guardarRutina(){
-  const dia = document.getElementById("rutinaDia").value;
-  const nom = document.getElementById("rutinaNom").value.trim();
-  const tipus = document.getElementById("rutinaTipus").value;
-  const durada = document.getElementById("rutinaDurada").value;
-  const ordre = document.getElementById("rutinaOrdre").value || 99;
-  if(!nom){ showToast("Escriu el nom de l'exercici"); return; }
-
-  if(rutinaEditingId){
-    const idx = STATE.rutinesMati.findIndex(x=>String(x.ID)===String(rutinaEditingId));
-    if(idx>-1) STATE.rutinesMati[idx] = {...STATE.rutinesMati[idx], Dia:dia, Nom:nom, Tipus:tipus, Durada_min:durada, Ordre:ordre};
-    renderAdminRutinesList();
-    await apiPost("editarRutinaMati", {id:rutinaEditingId, dia, nom, tipus, durada, ordre, actiu:true});
-    showToast("Exercici actualitzat");
-    cancelEditRutina();
-  } else {
-    STATE.rutinesMati.push({ID:"tmp_"+Date.now(), Dia:dia, Nom:nom, Tipus:tipus, Durada_min:durada, Ordre:ordre, Actiu:true});
-    renderAdminRutinesList();
-    await apiPost("afegirRutinaMati", {dia, nom, tipus, durada, ordre});
-    await loadAll();
-    showToast("Exercici afegit");
-    omplirFormRutina(null);
-  }
-}
-async function eliminarRutinaClick(id){
-  if(!confirm("Segur que vols eliminar aquest exercici?")) return;
-  STATE.rutinesMati = STATE.rutinesMati.filter(x=>String(x.ID)!==String(id));
-  renderAdminRutinesList();
-  await apiPost("eliminarRutinaMati", {id});
-  showToast("Exercici eliminat");
-}
-function renderAdminRutinesList(){
-  const cont = document.getElementById("adminRutinesList");
-  if(!cont) return;
-  if(!STATE.rutinesMati.length){ cont.innerHTML = `<div class="empty">Encara no hi ha exercicis definits.</div>`; return; }
-  const porDia = {};
-  STATE.rutinesMati.forEach(r=>{ (porDia[r.Dia] = porDia[r.Dia]||[]).push(r); });
-  cont.innerHTML = Object.keys(porDia).map(dia=>{
-    const rows = porDia[dia].map(r=>`
-      <div class="card">
-        <div class="card-head">
-          <span style="font-size:14px;">${r.Nom}</span>
-          <div class="icon-row">
-            <div class="icon-btn" onclick="startEditRutina('${r.ID}')">✎</div>
-            <div class="icon-btn danger" onclick="eliminarRutinaClick('${r.ID}')">🗑</div>
-          </div>
-        </div>
-        <div class="row"><span class="k">Tipus</span><span class="v">${r.Tipus||"–"}</span></div>
-        <div class="row"><span class="k">Durada</span><span class="v">${r.Durada_min?r.Durada_min+" min":"–"}</span></div>
-      </div>`).join("");
-    return `<div class="section-title">Dia: ${dia}</div>${rows}`;
-  }).join("");
-}
-
-/* ============ ADMIN: SEMBRA RUTINA DE CALISTÈNIA (5 dies) ============ */
-const SEED_RUTINA_MATI = [
-  // Dilluns — Core bàsic + mobilitat
-  {dia:"L", nom:"Mobilitat de malucs i espatlles", tipus:"Mobilitat", durada:3, ordre:1},
-  {dia:"L", nom:"Plank frontal 3x20-30seg", tipus:"Abdominals", durada:3, ordre:2},
-  {dia:"L", nom:"Elevacions de cames (tombat) 3x12", tipus:"Abdominals", durada:3, ordre:3},
-  {dia:"L", nom:"Esquats suaus 2x15", tipus:"Altres", durada:3, ordre:4},
-  {dia:"L", nom:"Estirament final", tipus:"Estirament", durada:3, ordre:5},
-  // Dimarts — Cames i glutis
-  {dia:"M", nom:"Escalfament articular", tipus:"Mobilitat", durada:2, ordre:1},
-  {dia:"M", nom:"Sentadilles 3x15", tipus:"Altres", durada:4, ordre:2},
-  {dia:"M", nom:"Pont de glutis 3x15", tipus:"Altres", durada:3, ordre:3},
-  {dia:"M", nom:"Estocades alternes 2x10 per cama", tipus:"Altres", durada:4, ordre:4},
-  {dia:"M", nom:"Estirament de cames", tipus:"Estirament", durada:3, ordre:5},
-  // Dimecres — Core dinàmic
-  {dia:"X", nom:"Mobilitat de columna", tipus:"Mobilitat", durada:3, ordre:1},
-  {dia:"X", nom:"Mountain climbers 3x20seg", tipus:"HIIT", durada:3, ordre:2},
-  {dia:"X", nom:"Bicicleta abdominal 3x15", tipus:"Abdominals", durada:3, ordre:3},
-  {dia:"X", nom:"Plank lateral 2x20seg per costat", tipus:"Abdominals", durada:3, ordre:4},
-  {dia:"X", nom:"Estirament suau", tipus:"Estirament", durada:3, ordre:5},
-  // Dijous — Cames i equilibri
-  {dia:"J", nom:"Escalfament turmells i malucs", tipus:"Mobilitat", durada:2, ordre:1},
-  {dia:"J", nom:"Sentadilla a paret 3x30seg", tipus:"Altres", durada:3, ordre:2},
-  {dia:"J", nom:"Step-ups o gambades 2x12 per cama", tipus:"Altres", durada:4, ordre:3},
-  {dia:"J", nom:"Elevació de cames (abdominal baix) 3x12", tipus:"Abdominals", durada:3, ordre:4},
-  {dia:"J", nom:"Estirament quàdriceps i isquiotibials", tipus:"Estirament", durada:3, ordre:5},
-  // Divendres — Cos sencer suau (dia amb braços)
-  {dia:"V", nom:"Mobilitat general", tipus:"Mobilitat", durada:2, ordre:1},
-  {dia:"V", nom:"Flexions de genolls 2x10", tipus:"Altres", durada:3, ordre:2},
-  {dia:"V", nom:"Circuit sentadilles + abdominals (2 rondes)", tipus:"HIIT", durada:5, ordre:3},
-  {dia:"V", nom:"Plank frontal 2x30seg", tipus:"Abdominals", durada:2, ordre:4},
-  {dia:"V", nom:"Estirament final complet", tipus:"Estirament", durada:3, ordre:5},
-];
-async function seedRutinaMati(){
-  if(STATE.rutinesMati.length){
-    if(!confirm("Ja tens exercicis a Rutines matí. Vols afegir-hi aquesta rutina de 5 dies de totes maneres (no esborra els existents)?")) return;
-  } else {
-    if(!confirm("Es carregaran 25 exercicis (5 dies × 5 exercicis). Continuar?")) return;
-  }
-  showToast("Carregant rutina...");
-  for(const ex of SEED_RUTINA_MATI){
-    await apiPost("afegirRutinaMati", ex);
-  }
-  await loadAll();
-  showToast("Rutina de calistènia carregada!");
-}
-
-/* ============ STREAK ============ */
-function computeStreak(){
-  let streak = 0;
-  let d = new Date();
-  let salvaguarda = 0;
-  while(salvaguarda < 400){
-    salvaguarda++;
-    const dStr = fmt(d);
-    const tasques = tasquesActivesDia(d);
-    if(tasques.length===0){ d.setDate(d.getDate()-1); continue; } // dia sense tasques no trenca ratxa
-    const reg = registreDia(dStr);
-    const totes = tasques.every(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE"));
-    if(!totes) break;
-    streak++;
-    d.setDate(d.getDate()-1);
-  }
-  document.getElementById("streakNum").textContent = streak;
 }
 
 /* ============ ESTADÍSTIQUES ============ */
-let currentRange = 7;
-let charts = {};
-document.getElementById("rangeBar").addEventListener("click", e=>{
+let statsViewMode = "week";
+let statsRefDate = new Date();
+let statsCharts = {};
+
+document.getElementById("statsViewToggle").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
-  document.querySelectorAll("#rangeBar button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll("#statsViewToggle button").forEach(b=>b.classList.remove("active"));
   e.target.classList.add("active");
-  currentRange = e.target.dataset.r === "custom" ? "custom" : Number(e.target.dataset.r);
-  document.getElementById("customDateWrap").style.display = currentRange==="custom" ? "block" : "none";
-  if(currentRange==="custom" && !document.getElementById("statsCustomDate").value){
-    const d = new Date(); d.setDate(d.getDate()-7);
-    document.getElementById("statsCustomDate").value = fmt(d);
-  }
+  statsViewMode = e.target.dataset.view;
   renderStats();
 });
-document.getElementById("statsCustomDate").addEventListener("change", renderStats);
-
-function getDiesRange(){
-  if(currentRange==="custom"){
-    const v = document.getElementById("statsCustomDate").value;
-    const start = v ? new Date(v+"T00:00:00") : (()=>{ const d=new Date(); d.setDate(d.getDate()-7); return d; })();
-    const today = new Date();
-    const dies = [];
-    let d = new Date(start);
-    while(fmt(d) <= fmt(today)){ dies.push(new Date(d)); d.setDate(d.getDate()+1); }
-    return dies.length ? dies : [new Date()];
+function changeStatsPeriod(delta){
+  if(statsViewMode==="week") statsRefDate.setDate(statsRefDate.getDate()+delta*7);
+  else statsRefDate.setMonth(statsRefDate.getMonth()+delta);
+  renderStats();
+}
+function getStatsRange(){
+  if(statsViewMode==="week"){
+    const mon = mondayOf(statsRefDate);
+    const dies = []; for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); dies.push(d); }
+    return dies;
+  } else {
+    const year = statsRefDate.getFullYear(), month = statsRefDate.getMonth();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const dies = []; for(let day=1; day<=daysInMonth; day++){ dies.push(new Date(year,month,day)); }
+    return dies;
   }
-  const dies = [];
-  for(let i=currentRange-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); dies.push(d); }
-  return dies;
 }
-
-function renderStats(){
-  const dies = getDiesRange();
-  const desde = fmt(dies[0]);
-
-  /* ---- Resum general ---- */
-  let totalTasques=0, totalFetes=0;
-  const complimentPerDia = dies.map(d=>{
-    const dStr = fmt(d);
-    const tasques = tasquesActivesDia(d);
-    const reg = registreDia(dStr);
-    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-    totalTasques += tasques.length; totalFetes += fetes;
-    return tasques.length ? Math.round((fetes/tasques.length)*100) : null;
-  });
-  document.getElementById("statCompliment").textContent = totalTasques ? Math.round((totalFetes/totalTasques)*100)+"%" : "–";
-  document.getElementById("statStreak").textContent = document.getElementById("streakNum").textContent;
-  drawChart("chartCompliment","line", dies.map(d=>d.toLocaleDateString('ca-ES',{day:'numeric',month:'numeric'})),
-    [{label:"% compliment", data:complimentPerDia, borderColor:"#8fb996", backgroundColor:"rgba(143,185,150,.15)", fill:true, tension:.3}]);
-
-  /* ---- Exercici matinal ---- */
-  let matFetes=0, matTotal=0;
-  dies.forEach(d=>{
-    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Exercici matinal");
-    if(!tasques.length) return;
-    matTotal++;
-    const reg = registreDia(fmt(d));
-    if(tasques.every(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE"))) matFetes++;
-  });
-  document.getElementById("statMatinalFetes").textContent = matFetes;
-  document.getElementById("statMatinalPct").textContent = matTotal ? Math.round((matFetes/matTotal)*100)+"%" : "–";
-
-  /* ---- Àpats ---- */
-  let apatsTotalItems=0, apatsFetesItems=0, apatsSalut=0, apatsNoSalut=0;
-  dies.forEach(d=>{
-    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Àpats");
-    const reg = registreDia(fmt(d));
-    tasques.forEach(t=>{
-      apatsTotalItems++;
-      const rr = reg.find(r=>String(r.ID_Tasca)===String(t.ID));
-      if(rr && String(rr.Fet).toUpperCase()==="TRUE"){
-        apatsFetesItems++;
-        if(rr.Saludable!==undefined && rr.Saludable!==""){
-          if(String(rr.Saludable).toUpperCase()==="TRUE") apatsSalut++; else apatsNoSalut++;
-        }
-      }
-    });
-  });
-  document.getElementById("statApatsPct").textContent = apatsTotalItems ? Math.round((apatsFetesItems/apatsTotalItems)*100)+"%" : "–";
-  const apatsAmbSalut = apatsSalut + apatsNoSalut;
-  document.getElementById("statApatsSalut").textContent = apatsAmbSalut ? Math.round((apatsSalut/apatsAmbSalut)*100)+"%" : "–";
-  drawChart("chartApatsSalut","doughnut", ["Saludables","No saludables"],
-    [{data:[apatsSalut,apatsNoSalut], backgroundColor:["#8fb996","#b15e52"], borderWidth:0}]);
-
-  /* ---- Entrenaments ---- */
-  const entrenosRang = STATE.entrenos.filter(e=>e.Data>=desde);
-  const gimnasEnt = entrenosRang.filter(e=>(e.Tipus||"Gimnàs")==="Gimnàs");
-  const cardioEnt = entrenosRang.filter(e=>e.Tipus==="Cardio");
-  document.getElementById("statEntTotal").textContent = entrenosRang.length;
-
-  let pesTotal=0;
-  gimnasEnt.forEach(e=>{ pesTotal += (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0); });
-  document.getElementById("statEntPes").textContent = pesTotal ? Math.round(pesTotal).toLocaleString('ca-ES')+" kg" : "–";
-
-  let cardioMinTotal=0, cardioKmTotal=0;
-  cardioEnt.forEach(e=>{ cardioMinTotal += Number(e.Minuts)||0; cardioKmTotal += Number(e.Kms)||0; });
-  document.getElementById("statCardioMin").textContent = cardioMinTotal ? fmtDuracio(cardioMinTotal) : "–";
-  document.getElementById("statCardioKm").textContent = cardioKmTotal ? cardioKmTotal.toFixed(1)+" km" : "–";
-
-  const tipusCount = {};
-  if(gimnasEnt.length) tipusCount["Gimnàs"] = gimnasEnt.length;
-  cardioEnt.forEach(e=>{ const k = e.Subtipus || "Altres"; tipusCount[k] = (tipusCount[k]||0)+1; });
-  const tipusLabels = Object.keys(tipusCount);
-  drawChart("chartEntTipus","bar", tipusLabels,
-    [{label:"Sessions", data:tipusLabels.map(k=>tipusCount[k]), backgroundColor:tipusLabels.map(k=>k==="Gimnàs"?"#8fb996":"#6fa8e0")}]);
-
-  const volumPerExercici = {};
-  gimnasEnt.forEach(e=>{
-    const vol = (Number(e.Pes_kg)||0) * (Number(e.Series)||0) * (Number(e.Reps)||0);
-    volumPerExercici[e.Exercici] = (volumPerExercici[e.Exercici]||0) + vol;
-  });
-  const labelsV = Object.keys(volumPerExercici);
-  drawChart("chartVolum","bar", labelsV, [{label:"Volum (kg)", data:labelsV.map(k=>volumPerExercici[k]), backgroundColor:"#8fb996"}]);
-
-  const minutsPerTipus = {};
-  cardioEnt.forEach(e=>{ const k = e.Subtipus || "Altres"; minutsPerTipus[k] = (minutsPerTipus[k]||0) + (Number(e.Minuts)||0); });
-  const labelsC = Object.keys(minutsPerTipus);
-  drawChart("chartCardioTipus","bar", labelsC, [{label:"Minuts", data:labelsC.map(k=>minutsPerTipus[k]), backgroundColor:"#6fa8e0"}]);
-
-  /* ---- Rutines ---- */
-  let rutFetes=0, rutTotal=0;
-  dies.forEach(d=>{
-    const tasques = tasquesActivesDia(d).filter(t=>t.Categoria==="Rutines");
-    const reg = registreDia(fmt(d));
-    tasques.forEach(t=>{
-      rutTotal++;
-      if(reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")) rutFetes++;
-    });
-  });
-  document.getElementById("statRutinesFetes").textContent = rutFetes;
-  document.getElementById("statRutinesPct").textContent = rutTotal ? Math.round((rutFetes/rutTotal)*100)+"%" : "–";
-
-  /* ---- Compliment per dia de la setmana ---- */
-  const diesSetmanaLbl = ["Dl","Dt","Dc","Dj","Dv","Ds","Dg"];
-  const codisOrdre = ["L","M","X","J","V","S","D"];
-  const perDiaTotals = {}, perDiaFetes = {};
-  codisOrdre.forEach(c=>{ perDiaTotals[c]=0; perDiaFetes[c]=0; });
-  dies.forEach(d=>{
-    const codi = diaCodi(d);
-    const tasques = tasquesActivesDia(d);
-    const reg = registreDia(fmt(d));
-    const fetes = tasques.filter(t=>reg.some(r=>String(r.ID_Tasca)===String(t.ID)&&String(r.Fet).toUpperCase()==="TRUE")).length;
-    perDiaTotals[codi] += tasques.length; perDiaFetes[codi] += fetes;
-  });
-  const pctPerDia = codisOrdre.map(c=> perDiaTotals[c] ? Math.round((perDiaFetes[c]/perDiaTotals[c])*100) : 0);
-  drawChart("chartSetmana","bar", diesSetmanaLbl, [{label:"% compliment", data:pctPerDia, backgroundColor:"#e8a652"}]);
-
-  /* ---- Físic (pes) ---- */
-  const mesuresRang = STATE.mesures.filter(m=>m.Data>=desde).sort((a,b)=>a.Data.localeCompare(b.Data));
-  drawChart("chartPes","line", mesuresRang.map(m=>m.Data.slice(5)),
-    [{label:"Pes (kg)", data:mesuresRang.map(m=>Number(m.Pes_kg)), borderColor:"#e8a652", backgroundColor:"rgba(232,166,82,.15)", fill:true, tension:.3}]);
-}
-
-function drawChart(canvasId, type, labels, datasets){
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  if(charts[canvasId]) charts[canvasId].destroy();
-  const noScales = (type==="doughnut" || type==="pie");
-  charts[canvasId] = new Chart(ctx, {
+function drawChart(canvasId, type, labels, datasets, opts={}){
+  const el = document.getElementById(canvasId);
+  if(!el) return;
+  const ctx = el.getContext("2d");
+  if(statsCharts[canvasId]) statsCharts[canvasId].destroy();
+  const noScales = (type==="doughnut"||type==="pie");
+  statsCharts[canvasId] = new Chart(ctx, {
     type, data:{labels, datasets},
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:noScales, position:"bottom", labels:{color:"#8f979d", font:{size:11}}}},
+      plugins:{legend:{display:noScales, position:"bottom", labels:{color:"#767F73",font:{size:11}}}},
       scales: noScales ? {} : {
-        x:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}},
-        y:{ticks:{color:"#8f979d",font:{size:10}}, grid:{color:"#242a2f"}}
-      }
+        x:{ticks:{color:"#767F73",font:{size:10}}, grid:{color:"#EFF1EA"}},
+        y:{ticks:{color:"#767F73",font:{size:10}}, grid:{color:"#EFF1EA"}}
+      },
+      ...opts
     }
   });
 }
+function renderStats(){
+  const dies = getStatsRange();
+  const todayStr = fmt(new Date());
+  const desde = fmt(dies[0]), fins = fmt(dies[dies.length-1]);
 
-/* ============ LOGIN ============ */
-const LOGIN_STORAGE_KEY = "vital_last_user";
+  const lblRaw = statsViewMode==="week"
+    ? dies[0].toLocaleDateString('ca-ES',{day:'numeric',month:'short'}) + " – " + dies[6].toLocaleDateString('ca-ES',{day:'numeric',month:'short'})
+    : statsRefDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
+  document.getElementById("statsPeriodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
 
-function initLogin(){
-  const lastUser = localStorage.getItem(LOGIN_STORAGE_KEY);
-  if(lastUser && USER_API_URLS[lastUser]){
-    document.getElementById("loginUser").value = lastUser;
-  }
+  // Recopilar totes les ocurrències del període
+  let occ = [];
+  dies.forEach(d=>{
+    const dStr = fmt(d);
+    activitatsDelDia(d).forEach(a=>{ occ.push({a, dStr}); });
+  });
+
+  const total = occ.length;
+  const completades = occ.filter(o=>isCompletat(o.a.ID,o.dStr));
+  const perdudes = occ.filter(o=>isPerduda(o.a.ID,o.dStr));
+  const pctCompliment = total ? Math.round((completades.length/total)*100) : 0;
+
+  // KPIs per tipus
+  const perTipus = {"Gym":{total:0,fet:0}, "Classe Gym":{total:0,fet:0}, "Exterior":{total:0,fet:0}};
+  occ.forEach(o=>{
+    if(!perTipus[o.a.Tipus]) perTipus[o.a.Tipus]={total:0,fet:0};
+    perTipus[o.a.Tipus].total++;
+    if(isCompletat(o.a.ID,o.dStr)) perTipus[o.a.Tipus].fet++;
+  });
+
+  // Dificultat/satisfacció mitjanes, minuts, kms
+  let sumDif=0,nDif=0,sumSat=0,nSat=0,totalMin=0,totalKm=0;
+  completades.forEach(o=>{
+    const l = logEntry(o.a.ID,o.dStr);
+    if(l && l.Dificultat!==""&&l.Dificultat!==undefined){ sumDif+=Number(l.Dificultat); nDif++; }
+    if(l && l.Satisfaccio!==""&&l.Satisfaccio!==undefined){ sumSat+=Number(l.Satisfaccio); nSat++; }
+    const range = effectiveRange(o.a);
+    if(range) totalMin += (range.end-range.start);
+    if(o.a.Kms) totalKm += Number(o.a.Kms)||0;
+  });
+  const avgDif = nDif? (sumDif/nDif).toFixed(1) : "–";
+  const avgSat = nSat? (sumSat/nSat).toFixed(1) : "–";
+
+  let html = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num">${completades.length}/${total}</div><div class="lbl">Sessions completades</div></div>
+      <div class="stat-box"><div class="num">${pctCompliment}%</div><div class="lbl">% compliment</div></div>
+    </div>
+    <div class="stat-grid cols3">
+      <div class="stat-box"><div class="num" style="color:var(--missed);">${perdudes.length}</div><div class="lbl">No completades</div></div>
+      <div class="stat-box"><div class="num">${avgDif}</div><div class="lbl">Dificultat mitjana</div></div>
+      <div class="stat-box"><div class="num">${avgSat}</div><div class="lbl">Satisfacció mitjana</div></div>
+    </div>
+    <div class="stat-grid cols3">
+      <div class="stat-box"><div class="num">${Math.round(totalMin/60*10)/10}h</div><div class="lbl">Temps entrenat</div></div>
+      <div class="stat-box"><div class="num">${totalKm?totalKm.toFixed(1):'–'}</div><div class="lbl">Km (Exterior)</div></div>
+      <div class="stat-box"><div class="num">${perTipus["Gym"].fet}</div><div class="lbl">Sessions Gym</div></div>
+    </div>
+
+    <div class="section-title">Sessions per tipus</div>
+    <div class="chart-wrap"><canvas id="chartTipus"></canvas></div>
+
+    <div class="section-title">Compliment del període</div>
+    <div class="chart-wrap"><canvas id="chartCompliment"></canvas></div>
+
+    <div class="section-title">Objectius d'aquest ${statsViewMode==="week"?"setmana":"mes"}</div>
+    <div id="goalsProgress"></div>
+  `;
+  document.getElementById("statsContent").innerHTML = html;
+
+  const tipusLabels = Object.keys(perTipus).filter(k=>perTipus[k].total>0);
+  drawChart("chartTipus","bar", tipusLabels,
+    [{label:"Fetes", data:tipusLabels.map(k=>perTipus[k].fet), backgroundColor:tipusLabels.map(k=>TIPUS_INFO[k].color)},
+     {label:"Programades", data:tipusLabels.map(k=>perTipus[k].total), backgroundColor:tipusLabels.map(k=>TIPUS_INFO[k].color+"55")}]);
+
+  const complimentPerDia = dies.map(d=>{
+    const dStr = fmt(d);
+    const dOcc = activitatsDelDia(d);
+    if(!dOcc.length) return null;
+    const fetes = dOcc.filter(a=>isCompletat(a.ID,dStr)).length;
+    return Math.round((fetes/dOcc.length)*100);
+  });
+  drawChart("chartCompliment","line", dies.map(d=>d.toLocaleDateString('ca-ES',{day:'numeric',month:statsViewMode==='month'?undefined:'numeric'})),
+    [{label:"% compliment", data:complimentPerDia, borderColor:"#5CAE82", backgroundColor:"rgba(92,174,130,.15)", fill:true, tension:.3}]);
+
+  renderGoalsProgress(perTipus, totalMin, totalKm);
 }
-async function doLogin(){
-  const user = document.getElementById("loginUser").value;
-  const pwd = document.getElementById("loginPassword").value;
-  const errEl = document.getElementById("loginError");
-  if(!user || !USER_API_URLS[user] || USER_API_URLS[user].startsWith("ENGANXA")){
-    errEl.textContent = "Tria un usuari vàlid";
-    errEl.style.display = "block";
-    return;
-  }
-  if(pwd !== APP_PASSWORD){
-    errEl.textContent = "Contrasenya incorrecta";
-    errEl.style.display = "block";
-    return;
-  }
-  errEl.style.display = "none";
-  API_URL = USER_API_URLS[user];
-
-  document.getElementById("loginFormWrap").style.display = "none";
-  document.getElementById("loginLoadingUser").textContent = user.charAt(0) + user.slice(1).toLowerCase();
-  document.getElementById("loginLoading").style.display = "block";
-
-  try{
-    await loadAll();
-    localStorage.setItem(LOGIN_STORAGE_KEY, user);
-    document.getElementById("loginOverlay").style.display = "none";
-    document.getElementById("appRoot").style.display = "block";
-  } catch(err){
-    errEl.textContent = "No s'han pogut carregar les dades. Comprova la connexió o torna-ho a provar.";
-    errEl.style.display = "block";
-  } finally {
-    document.getElementById("loginLoading").style.display = "none";
-    document.getElementById("loginFormWrap").style.display = "block";
-  }
+function renderGoalsProgress(perTipus, totalMin, totalKm){
+  const periode = statsViewMode==="week" ? "Setmanal" : "Mensual";
+  const goals = STATE.objectius.filter(o=>o.Periode===periode);
+  const cont = document.getElementById("goalsProgress");
+  if(!goals.length){ cont.innerHTML = `<div class="empty">Encara no has definit objectius ${periode==='Setmanal'?'setmanals':'mensuals'}.</div>`; return; }
+  cont.innerHTML = goals.map(g=>{
+    let actual = 0, unitat = "";
+    if(g.Metrica==="Sessions"){ actual = g.Tipus==="Total" ? Object.values(perTipus).reduce((s,t)=>s+t.fet,0) : (perTipus[g.Tipus]?perTipus[g.Tipus].fet:0); unitat="sessions"; }
+    else if(g.Metrica==="Minuts"){ actual = Math.round(totalMin); unitat="min"; }
+    else if(g.Metrica==="Kms"){ actual = Math.round(totalKm*10)/10; unitat="km"; }
+    const pct = Math.min(100, Math.round((actual/Number(g.Valor))*100)||0);
+    return `<div class="goal-card">
+      <div class="row"><span>${g.Tipus} · ${g.Metrica}</span><span class="mono">${actual}/${g.Valor} ${unitat}</span></div>
+      <div class="goal-bar"><div class="goal-bar-fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join("");
 }
-function doLogout(){
-  API_URL = "";
-  document.getElementById("appRoot").style.display = "none";
-  document.getElementById("loginOverlay").style.display = "flex";
-  document.getElementById("loginPassword").value = "";
-}
-document.getElementById("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
-/* ============ INIT ============ */
-initLogin();
+/* ============ POPUP: OBJECTIUS ============ */
+function openObjectius(){
+  openModal(`
+    <h3 class="modal-title">Objectius</h3>
+    <div id="objectiusList"></div>
+    <div class="section-title">Nou objectiu</div>
+    <div class="form">
+      <label>Període</label>
+      <select id="objPeriode"><option>Setmanal</option><option>Mensual</option></select>
+      <label>Tipus</label>
+      <select id="objTipus"><option>Total</option><option>Gym</option><option>Classe Gym</option><option>Exterior</option></select>
+      <label>Mètrica</label>
+      <select id="objMetrica"><option>Sessions</option><option>Minuts</option><option>Kms</option></select>
+      <label>Valor objectiu</label>
+      <input id="objValor" type="number" placeholder="3">
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px;" onclick="afegirObjectiuClick()">Guardar objectiu</button>
+    </div>
+  `);
+  renderObjectiusList();
+}
+function renderObjectiusList(){
+  const cont = document.getElementById("objectiusList");
+  if(!cont) return;
+  if(!STATE.objectius.length){ cont.innerHTML = `<div class="empty">Encara no hi ha objectius.</div>`; return; }
+  cont.innerHTML = STATE.objectius.map(g=>`<div class="goal-card">
+    <div class="row" style="align-items:center;">
+      <span>${g.Periode} · ${g.Tipus} · ${g.Metrica}: <b class="mono">${g.Valor}</b></span>
+      <div class="icon-btn-del" style="cursor:pointer;color:var(--missed);font-size:13px;" onclick="eliminarObjectiuClick('${g.ID}')">🗑</div>
+    </div>
+  </div>`).join("");
+}
+async function afegirObjectiuClick(){
+  const periode = document.getElementById("objPeriode").value;
+  const tipus = document.getElementById("objTipus").value;
+  const metrica = document.getElementById("objMetrica").value;
+  const valor = document.getElementById("objValor").value;
+  if(!valor){ showToast("Indica un valor"); return; }
+  STATE.objectius.push({ID:"tmp_"+Date.now(), Periode:periode, Tipus:tipus, Metrica:metrica, Valor:valor});
+  renderObjectiusList();
+  const r = await apiPost("afegirObjectiu", {periode, tipus, metrica, valor});
+  if(r && r.id){ const last=STATE.objectius[STATE.objectius.length-1]; last.ID=r.id; }
+  showToast("Objectiu desat");
+}
+async function eliminarObjectiuClick(id){
+  STATE.objectius = STATE.objectius.filter(g=>String(g.ID)!==String(id));
+  renderObjectiusList();
+  await apiPost("eliminarObjectiu", {id});
+  showToast("Objectiu eliminat");
+}
 
 /* ============ REFRESC MANUAL ============ */
 document.getElementById("fabRefresh").addEventListener("click", async ()=>{
   const btn = document.getElementById("fabRefresh");
-  if(btn.classList.contains("spinning")) return; // evita doble clic mentre carrega
+  if(btn.classList.contains("spinning")) return;
   btn.classList.add("spinning");
-  try{
-    await loadAll();
-    showToast("Dades actualitzades");
-  }catch(err){
-    showToast("Error refrescant");
-  }finally{
-    btn.classList.remove("spinning");
-  }
+  try{ await loadAll(); showToast("Dades actualitzades"); }
+  catch(err){ showToast("Error refrescant"); }
+  finally{ btn.classList.remove("spinning"); }
 });
+
+/* ============ INIT ============ */
+loadAll().catch(err=>{ console.error(err); showToast("Error carregant dades inicials"); });
 </script>
 </body>
 </html>
