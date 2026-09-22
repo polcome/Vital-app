@@ -69,6 +69,7 @@
   .day-line.classe{background:var(--classe-bg);color:var(--classe-text);}
   .day-line.exterior{background:var(--exterior-bg);color:var(--exterior-text);}
   .day-line.missed{opacity:.55;text-decoration:line-through;}
+  .day-line.omesa{opacity:.4;text-decoration:line-through;background:var(--surface-2);color:var(--text-muted);}
   .day-more{font-size:7.5px;color:var(--text-muted);text-align:center;flex-shrink:0;}
 
   .day-expanded{background:var(--surface);border:1px solid var(--gym);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
@@ -79,6 +80,7 @@
   .act-row.classe{border-left-color:var(--classe);}
   .act-row.exterior{border-left-color:var(--exterior);}
   .act-row.completat{opacity:.6;}
+  .act-row.omesa{opacity:.55;background:var(--surface-2);}
   .act-row .time{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);min-width:40px;}
   .act-row .body{flex:1;min-width:0;}
   .act-row .name{font-size:13.5px;font-weight:600;}
@@ -298,9 +300,13 @@ function isCompletat(activitatId, dStr){
   const l = logEntry(activitatId, dStr);
   return l && String(l.Completat).toUpperCase()==="TRUE";
 }
+function isOmesa(activitatId, dStr){
+  const l = logEntry(activitatId, dStr);
+  return l && String(l.Omesa).toUpperCase()==="TRUE";
+}
 function isPerduda(activitatId, dStr){
   const todayStr = fmt(new Date());
-  return dStr < todayStr && !isCompletat(activitatId, dStr);
+  return dStr < todayStr && !isCompletat(activitatId, dStr) && !isOmesa(activitatId, dStr);
 }
 function effectiveRange(a){
   const start = parseTime(a.HoraInici);
@@ -396,7 +402,8 @@ function buildDayCell(d, outside){
   const linesHtml = visible.map(a=>{
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const missed = isPerduda(a.ID, dStr);
-    return `<div class="day-line ${info.cls} ${missed?'missed':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
+    const omesa = isOmesa(a.ID, dStr);
+    return `<div class="day-line ${info.cls} ${missed?'missed':''} ${omesa?'omesa':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
   }).join("");
   const moreHtml = acts.length>MAX_LINES ? `<div class="day-more">+${acts.length-MAX_LINES} més</div>` : "";
   const status = diaStatusClass(dStr, todayStr);
@@ -448,13 +455,17 @@ function renderDayExpandedPanel(dStr){
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const done = isCompletat(a.ID, dStr);
     const missed = isPerduda(a.ID, dStr);
-    return `<div class="act-row ${info.cls} ${done?'completat':''}" onclick="openActivityAction('${a.ID}','${dStr}')">
+    const omesa = isOmesa(a.ID, dStr);
+    let tagExtra = "";
+    if(omesa) tagExtra = ' · <span style="color:var(--text-muted);">omesa</span>';
+    else if(missed) tagExtra = ' · <span style="color:var(--missed);">no completada</span>';
+    return `<div class="act-row ${info.cls} ${done?'completat':''} ${omesa?'omesa':''}" onclick="openActivityAction('${a.ID}','${dStr}')">
       <div class="time">${a.HoraInici||'--:--'}</div>
       <div class="body">
-        <div class="name ${done?'done':''}">${a.Nom||info.label}</div>
-        <div class="tag">${info.icon} ${info.label}${missed?' · <span style=\"color:var(--missed);\">no completada</span>':''}</div>
+        <div class="name ${done||omesa?'done':''}">${a.Nom||info.label}</div>
+        <div class="tag">${info.icon} ${info.label}${tagExtra}</div>
       </div>
-      <div class="status">${done?'✅':(missed?'⚠️':'')}<span class="chevron">›</span></div>
+      <div class="status">${done?'✅':(omesa?'⏭️':(missed?'⚠️':''))}<span class="chevron">›</span></div>
     </div>`;
   }).join("") : `<div class="empty">Cap activitat aquest dia.</div>`;
   return `<div class="day-expanded"><div class="day-expanded-title">${labelRaw}</div>${inner}</div>`;
@@ -466,53 +477,97 @@ function openActivityAction(activitatId, dStr){
   if(!a) return;
   const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
   const done = isCompletat(a.ID, dStr);
+  const omesa = isOmesa(a.ID, dStr);
   const l = logEntry(a.ID, dStr);
   const d = new Date(dStr+"T00:00:00");
   const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  const isRecurrent = !a.DataPuntual;
 
   let detailsHtml = `<div class="row" style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:4px;"><span>${info.icon} ${info.label}</span><span class="mono">${a.HoraInici||''}${a.HoraFi?' - '+a.HoraFi:''}</span></div>`;
   if(a.Exercicis) detailsHtml += `<div style="font-size:12.5px;white-space:pre-line;color:var(--text-muted);margin-top:6px;">${a.Exercicis}</div>`;
   if(a.Kms) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);">📏 ${a.Kms} km${a.Desnivell?' · ⛰️ '+a.Desnivell+'m':''}</div>`;
   if(a.Notes) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">${a.Notes}</div>`;
 
-  let doneHtml = "";
+  let statusHtml = "";
   if(done && l){
-    doneHtml = `<div style="background:var(--gym-bg);border-radius:11px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:var(--gym-text);">
+    statusHtml = `<div style="background:var(--gym-bg);border-radius:11px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:var(--gym-text);">
       ✅ Completada${l.Dificultat?` · Dificultat ${l.Dificultat}/10`:''}${l.Satisfaccio?` · Satisfacció ${l.Satisfaccio}/10`:''}
       ${l.HoraEntradaReal?`<br>⏱️ ${l.HoraEntradaReal} - ${l.HoraSortidaReal||'?'}`:''}
     </div>`;
+  } else if(omesa){
+    statusHtml = `<div style="background:var(--surface-2);border-radius:11px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:var(--text-muted);">
+      ⏭️ Omesa aquest dia — no compta com a no completada
+    </div>`;
+  }
+
+  let mainActionsHtml;
+  if(done){
+    mainActionsHtml = `<button class="btn-secondary" onclick="desferEstatDia('${a.ID}','${dStr}')">↺ Desfer</button>`;
+  } else if(omesa){
+    mainActionsHtml = `<button class="btn-secondary" onclick="desferEstatDia('${a.ID}','${dStr}')">↺ Desfer</button>`;
+  } else {
+    mainActionsHtml = `<button class="btn-primary" style="flex:1;justify-content:center;" onclick="openCompleteForm('${a.ID}','${dStr}')">✓ Completar</button>`;
   }
 
   openModal(`
     <h3 class="modal-title">${a.Nom || info.label}</h3>
     <p style="font-size:12px;color:var(--text-muted);text-transform:capitalize;margin:-8px 0 12px;">${labelRaw}</p>
     ${detailsHtml}
-    ${doneHtml}
+    ${statusHtml}
     <div class="form-actions">
       <button class="btn-secondary" onclick="openActivityForm('${a.ID}')">✎ Editar</button>
-      ${done
-        ? `<button class="btn-secondary" onclick="desferCompletat('${a.ID}','${dStr}')">↺ Desfer</button>`
-        : `<button class="btn-primary" style="flex:1;justify-content:center;" onclick="openCompleteForm('${a.ID}','${dStr}')">✓ Completar</button>`}
+      ${mainActionsHtml}
     </div>
-    <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="eliminarActivitatClick('${a.ID}')">🗑 Eliminar aquesta activitat</button>
+    ${(!done && !omesa) ? `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="ometreDiaClick('${a.ID}','${dStr}')">⏭️ Ometre només aquest dia${isRecurrent?' (no afecta els altres)':''}</button>` : ''}
+    <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="eliminarActivitatClick('${a.ID}')">🗑 Eliminar tota la programació</button>
   `);
 }
-async function desferCompletat(activitatId, dStr){
-  await apiPost("marcarCompletat", {activitatId, data:dStr, completat:false});
+async function desferEstatDia(activitatId, dStr){
   const l = logEntry(activitatId, dStr);
-  if(l) l.Completat = false;
+  if(l){ l.Completat = false; l.Omesa = false; }
   closeModal();
   renderCalendarView();
   if(document.getElementById("page-stats").classList.contains("active")) renderStats();
-  showToast("Desmarcada");
+  try{
+    const r = await apiPost("desferEstatDia", {activitatId, data:dStr});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Estat restablert");
+  }catch(err){
+    showToast("Error: "+err.message);
+  }
+}
+async function ometreDiaClick(activitatId, dStr){
+  const existent = logEntry(activitatId, dStr);
+  if(existent){ existent.Completat=false; existent.Omesa=true; }
+  else{ STATE.log.push({ID:"tmp",ActivitatID:activitatId, Data:dStr, Completat:false, Omesa:true, Notes:""}); }
+  closeModal();
+  renderCalendarView();
+  if(document.getElementById("page-stats").classList.contains("active")) renderStats();
+  showToast("Ometent aquest dia...");
+  try{
+    const r = await apiPost("marcarOmesa", {activitatId, data:dStr});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Dia omès — no comptarà com a no completada");
+  }catch(err){
+    showToast("Error: "+err.message);
+  }
 }
 async function eliminarActivitatClick(id){
-  if(!confirm("Segur que vols eliminar aquesta activitat? (s'elimina la programació sencera, no només un dia)")) return;
+  if(!confirm("Segur que vols eliminar aquesta activitat? S'elimina la programació sencera (tots els dies), no només un.")) return;
+  const backup = STATE.activitats.find(a=>String(a.ID)===String(id));
+  const backupIdx = STATE.activitats.indexOf(backup);
   STATE.activitats = STATE.activitats.filter(a=>String(a.ID)!==String(id));
   closeModal();
   renderCalendarView();
-  await apiPost("eliminarActivitat", {id});
-  showToast("Activitat eliminada");
+  try{
+    const r = await apiPost("eliminarActivitat", {id});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Activitat eliminada");
+  }catch(err){
+    if(backup) STATE.activitats.splice(backupIdx>-1?backupIdx:STATE.activitats.length, 0, backup);
+    renderCalendarView();
+    showToast("No s'ha pogut eliminar: "+err.message);
+  }
 }
 
 /* ============ POPUP: COMPLETAR (dificultat + satisfacció) ============ */
@@ -750,12 +805,14 @@ function renderStats(){
     : statsRefDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
   document.getElementById("statsPeriodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
 
-  // Recopilar totes les ocurrències del període
-  let occ = [];
+  // Recopilar totes les ocurrències del període (les omeses no compten ni sumen ni resten)
+  let occAmbOmeses = [];
   dies.forEach(d=>{
     const dStr = fmt(d);
-    activitatsDelDia(d).forEach(a=>{ occ.push({a, dStr}); });
+    activitatsDelDia(d).forEach(a=>{ occAmbOmeses.push({a, dStr}); });
   });
+  const omeses = occAmbOmeses.filter(o=>isOmesa(o.a.ID,o.dStr));
+  const occ = occAmbOmeses.filter(o=>!isOmesa(o.a.ID,o.dStr));
 
   const total = occ.length;
   const completades = occ.filter(o=>isCompletat(o.a.ID,o.dStr));
@@ -790,13 +847,13 @@ function renderStats(){
     </div>
     <div class="stat-grid cols3">
       <div class="stat-box"><div class="num" style="color:var(--missed);">${perdudes.length}</div><div class="lbl">No completades</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--text-muted);">${omeses.length}</div><div class="lbl">Omeses (no compten)</div></div>
       <div class="stat-box"><div class="num">${avgDif}</div><div class="lbl">Dificultat mitjana</div></div>
-      <div class="stat-box"><div class="num">${avgSat}</div><div class="lbl">Satisfacció mitjana</div></div>
     </div>
     <div class="stat-grid cols3">
+      <div class="stat-box"><div class="num">${avgSat}</div><div class="lbl">Satisfacció mitjana</div></div>
       <div class="stat-box"><div class="num">${Math.round(totalMin/60*10)/10}h</div><div class="lbl">Temps entrenat</div></div>
       <div class="stat-box"><div class="num">${totalKm?totalKm.toFixed(1):'–'}</div><div class="lbl">Km (Exterior)</div></div>
-      <div class="stat-box"><div class="num">${perTipus["Gym"].fet}</div><div class="lbl">Sessions Gym</div></div>
     </div>
 
     <div class="section-title">Sessions per tipus</div>
