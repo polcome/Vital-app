@@ -12,10 +12,11 @@
     --bg:#F6F8FA; --surface:#FFFFFF; --surface-2:#EEF2F6; --border:#E1E7ED;
     --text:#1D2226; --text-muted:#75808A;
     --gym:#3B6FD1; --gym-bg:#E1E9FA; --gym-text:#2A4F9E;
-    --classe:#2FA8C9; --classe-bg:#DDF2F7; --classe-text:#1F7A93;
-    --exterior:#6F6FD9; --exterior-bg:#E6E5FA; --exterior-text:#4A4AAE;
+    --classe:#E0954E; --classe-bg:#FBEBDA; --classe-text:#9C5E1E;
+    --exterior:#9B4FD9; --exterior-bg:#F1E3FA; --exterior-text:#6B2E96;
     --missed:#D9776A; --missed-bg:#FBE4E0;
     --amber:#DFA84E; --amber-bg:#FAEBD3;
+    --day-done-bg:#E4F5EA; --day-pending-bg:#FBE7E3;
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --radius:14px;
     --shadow:0 1px 2px rgba(20,30,40,.05), 0 2px 8px rgba(20,30,40,.05);
@@ -56,15 +57,20 @@
   .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px;}
   .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
   .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
-  .cal-day{height:104px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
+  .cal-day{height:132px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
     display:flex;flex-direction:column;align-items:stretch;gap:3px;overflow:hidden;padding:5px 3px;}
   .cal-day.outside{opacity:.25;pointer-events:none;}
   .cal-day.past{background:var(--surface-2);}
+  .cal-day.day-done{background:var(--day-done-bg);}
+  .cal-day.day-pending{background:var(--day-pending-bg);}
   .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
   .cal-day.expanded-sel{border-color:var(--gym);box-shadow:0 0 0 1px var(--gym) inset;background:var(--gym-bg);}
+  .cal-day.today.expanded-sel{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;background:var(--amber-bg);}
   .cal-day .dnum{font-family:var(--font-mono);font-size:12px;text-align:center;flex-shrink:0;}
-  .day-lines{display:flex;flex-direction:column;gap:2px;overflow:hidden;flex:1;min-height:0;}
-  .day-line{font-size:8.7px;line-height:1.35;border-radius:4px;padding:1.5px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;flex-shrink:0;}
+  .day-lines{display:flex;flex-direction:column;gap:3px;overflow:hidden;flex:1;min-height:0;}
+  .day-line{border-radius:5px;padding:2px 4px;flex-shrink:0;}
+  .day-line .dl-time{font-family:var(--font-mono);font-size:9px;font-weight:700;line-height:1.2;}
+  .day-line .dl-name{font-size:8.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
   .day-line.gym{background:var(--gym-bg);color:var(--gym-text);}
   .day-line.classe{background:var(--classe-bg);color:var(--classe-text);}
   .day-line.exterior{background:var(--exterior-bg);color:var(--exterior-text);}
@@ -88,6 +94,13 @@
   .act-row .tag{font-size:10.5px;color:var(--text-muted);}
   .act-row .status{font-size:15px;display:flex;align-items:center;gap:4px;}
   .act-row .chevron{color:var(--text-muted);font-size:17px;font-weight:700;}
+
+  /* ---- Overlay de càrrega ---- */
+  .loading-overlay{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:rgba(246,248,250,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .2s;}
+  .loading-overlay.hidden{opacity:0;pointer-events:none;}
+  .loading-spinner-big{width:42px;height:42px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--gym);animation:spin .7s linear infinite;}
+  .loading-text{font-size:13px;color:var(--text-muted);font-weight:600;}
 
   /* ---- Modal ---- */
   .modal-overlay{position:fixed;inset:0;background:rgba(20,22,18,.4);z-index:200;display:none;align-items:flex-end;justify-content:center;}
@@ -229,6 +242,11 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner-big"></div>
+  <div class="loading-text">Carregant informació...</div>
+</div>
 
 <script>
 /* ============ CONFIG ============ */
@@ -384,7 +402,7 @@ function renderCalendarView(){
 }
 
 /* ============ CEL·LA DE DIA (compartida entre setmana i mes) ============ */
-let calExpandedDate = null;
+let calExpandedDate = fmt(new Date());
 function diaStatusClass(dStr, todayStr){
   if(dStr===todayStr) return "today";
   return dStr < todayStr ? "past" : "future";
@@ -393,21 +411,31 @@ function toggleDayExpand(dStr){
   calExpandedDate = (calExpandedDate===dStr) ? null : dStr;
   renderCalendarView();
 }
+function diaCompletionClass(acts, dStr, status){
+  if(status==="future" || !acts.length) return "";
+  const rellevants = acts.filter(a=>!isOmesa(a.ID, dStr));
+  if(!rellevants.length) return ""; // tot omès aquell dia, no compta
+  return rellevants.every(a=>isCompletat(a.ID, dStr)) ? "day-done" : "day-pending";
+}
 function buildDayCell(d, outside){
   const dStr = fmt(d);
   const todayStr = fmt(new Date());
   const acts = outside ? [] : activitatsDelDia(d);
-  const MAX_LINES = 4;
+  const MAX_LINES = 3;
   const visible = acts.slice(0, MAX_LINES);
   const linesHtml = visible.map(a=>{
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const missed = isPerduda(a.ID, dStr);
     const omesa = isOmesa(a.ID, dStr);
-    return `<div class="day-line ${info.cls} ${missed?'missed':''} ${omesa?'omesa':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
+    return `<div class="day-line ${info.cls} ${missed?'missed':''} ${omesa?'omesa':''}">
+      <div class="dl-time">${a.HoraInici||'--:--'}</div>
+      <div class="dl-name">${a.Nom||info.label}</div>
+    </div>`;
   }).join("");
   const moreHtml = acts.length>MAX_LINES ? `<div class="day-more">+${acts.length-MAX_LINES} més</div>` : "";
   const status = diaStatusClass(dStr, todayStr);
-  return `<div class="cal-day ${status} ${outside?'outside':''} ${dStr===calExpandedDate?'expanded-sel':''}"
+  const completionCls = diaCompletionClass(acts, dStr, status);
+  return `<div class="cal-day ${status} ${completionCls} ${outside?'outside':''} ${dStr===calExpandedDate?'expanded-sel':''}"
     onclick="${outside?'':`toggleDayExpand('${dStr}')`}">
     <div class="dnum">${d.getDate()}</div>
     <div class="day-lines">${linesHtml}${moreHtml}</div>
@@ -952,18 +980,44 @@ async function eliminarObjectiuClick(id){
   showToast("Objectiu eliminat");
 }
 
+/* ============ GEST DE LLISCAR (swipe) ENTRE PERÍODES ============ */
+(function(){
+  const cal = document.getElementById("page-calendar");
+  let sx=0, sy=0, active=false;
+  cal.addEventListener("touchstart", e=>{
+    if(e.touches.length!==1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; active = true;
+  }, {passive:true});
+  cal.addEventListener("touchend", e=>{
+    if(!active) return; active = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.4){
+      changePeriod(dx<0 ? 1 : -1);
+    }
+  }, {passive:true});
+})();
+
+/* ============ OVERLAY DE CÀRREGA ============ */
+function showLoading(){ document.getElementById("loadingOverlay").classList.remove("hidden"); }
+function hideLoading(){ document.getElementById("loadingOverlay").classList.add("hidden"); }
+
 /* ============ REFRESC MANUAL ============ */
 document.getElementById("fabRefresh").addEventListener("click", async ()=>{
   const btn = document.getElementById("fabRefresh");
   if(btn.classList.contains("spinning")) return;
   btn.classList.add("spinning");
+  showLoading();
   try{ await loadAll(); showToast("Dades actualitzades"); }
   catch(err){ showToast("Error refrescant"); }
-  finally{ btn.classList.remove("spinning"); }
+  finally{ btn.classList.remove("spinning"); hideLoading(); }
 });
 
 /* ============ INIT ============ */
-loadAll().catch(err=>{ console.error(err); showToast("Error carregant dades inicials"); });
+showLoading();
+loadAll()
+  .catch(err=>{ console.error(err); showToast("Error carregant dades inicials"); })
+  .finally(hideLoading);
 </script>
 </body>
 </html>
