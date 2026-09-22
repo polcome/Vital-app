@@ -52,23 +52,24 @@
   .section-title{font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 8px;font-weight:600;}
   .empty{color:var(--text-muted);font-size:13px;padding:22px 0;text-align:center;}
 
-  /* ---- Vista Mes / Setmana (dies estàndard amb punts) ---- */
-  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
+  /* ---- Vista Mes / Setmana (dies alts i llegibles) ---- */
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px;}
   .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
-  .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
-  .cal-day{height:54px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden;}
+  .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+  .cal-day{height:104px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
+    display:flex;flex-direction:column;align-items:stretch;gap:3px;overflow:hidden;padding:5px 3px;}
   .cal-day.outside{opacity:.25;pointer-events:none;}
   .cal-day.past{background:var(--surface-2);}
   .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
   .cal-day.expanded-sel{border-color:var(--gym);box-shadow:0 0 0 1px var(--gym) inset;background:var(--gym-bg);}
-  .cal-day .dnum{font-family:var(--font-mono);font-size:13px;}
-  .day-dots{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;max-width:34px;}
-  .day-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-  .day-dot.gym{background:var(--gym);}
-  .day-dot.classe{background:var(--classe);}
-  .day-dot.exterior{background:var(--exterior);}
-  .day-dot.missed{background:var(--missed);}
+  .cal-day .dnum{font-family:var(--font-mono);font-size:12px;text-align:center;flex-shrink:0;}
+  .day-lines{display:flex;flex-direction:column;gap:2px;overflow:hidden;flex:1;min-height:0;}
+  .day-line{font-size:8.7px;line-height:1.35;border-radius:4px;padding:1.5px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;flex-shrink:0;}
+  .day-line.gym{background:var(--gym-bg);color:var(--gym-text);}
+  .day-line.classe{background:var(--classe-bg);color:var(--classe-text);}
+  .day-line.exterior{background:var(--exterior-bg);color:var(--exterior-text);}
+  .day-line.missed{opacity:.55;text-decoration:line-through;}
+  .day-more{font-size:7.5px;color:var(--text-muted);text-align:center;flex-shrink:0;}
 
   .day-expanded{background:var(--surface);border:1px solid var(--gym);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
   .day-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:10px;text-transform:capitalize;}
@@ -83,7 +84,8 @@
   .act-row .name{font-size:13.5px;font-weight:600;}
   .act-row .name.done{text-decoration:line-through;color:var(--text-muted);}
   .act-row .tag{font-size:10.5px;color:var(--text-muted);}
-  .act-row .status{font-size:15px;}
+  .act-row .status{font-size:15px;display:flex;align-items:center;gap:4px;}
+  .act-row .chevron{color:var(--text-muted);font-size:17px;font-weight:700;}
 
   /* ---- Modal ---- */
   .modal-overlay{position:fixed;inset:0;background:rgba(20,22,18,.4);z-index:200;display:none;align-items:flex-end;justify-content:center;}
@@ -142,10 +144,10 @@
   .goal-bar{height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
   .goal-bar-fill{height:100%;background:var(--gym);border-radius:5px;}
 
-  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:30;}
-  nav.tabs button{background:none;border:none;color:var(--text-muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;flex:1;font-weight:600;}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:30;}
+  nav.tabs button{background:none;border:none;border-radius:12px;color:var(--text-muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 6px;flex:1;font-weight:600;transition:background .15s,color .15s;}
   nav.tabs button .ic{font-size:18px;}
-  nav.tabs button.active{color:var(--gym-text);}
+  nav.tabs button.active{color:var(--gym-text);background:var(--gym-bg);}
 
   .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);padding:9px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:250;}
   .toast.show{opacity:1;}
@@ -389,16 +391,19 @@ function buildDayCell(d, outside){
   const dStr = fmt(d);
   const todayStr = fmt(new Date());
   const acts = outside ? [] : activitatsDelDia(d);
-  const dotsHtml = acts.slice(0,6).map(a=>{
+  const MAX_LINES = 4;
+  const visible = acts.slice(0, MAX_LINES);
+  const linesHtml = visible.map(a=>{
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const missed = isPerduda(a.ID, dStr);
-    return `<span class="day-dot ${missed?'missed':info.cls}"></span>`;
+    return `<div class="day-line ${info.cls} ${missed?'missed':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
   }).join("");
+  const moreHtml = acts.length>MAX_LINES ? `<div class="day-more">+${acts.length-MAX_LINES} més</div>` : "";
   const status = diaStatusClass(dStr, todayStr);
   return `<div class="cal-day ${status} ${outside?'outside':''} ${dStr===calExpandedDate?'expanded-sel':''}"
     onclick="${outside?'':`toggleDayExpand('${dStr}')`}">
     <div class="dnum">${d.getDate()}</div>
-    <div class="day-dots">${dotsHtml}</div>
+    <div class="day-lines">${linesHtml}${moreHtml}</div>
   </div>`;
 }
 
@@ -449,7 +454,7 @@ function renderDayExpandedPanel(dStr){
         <div class="name ${done?'done':''}">${a.Nom||info.label}</div>
         <div class="tag">${info.icon} ${info.label}${missed?' · <span style=\"color:var(--missed);\">no completada</span>':''}</div>
       </div>
-      <div class="status">${done?'✅':(missed?'⚠️':'')}</div>
+      <div class="status">${done?'✅':(missed?'⚠️':'')}<span class="chevron">›</span></div>
     </div>`;
   }).join("") : `<div class="empty">Cap activitat aquest dia.</div>`;
   return `<div class="day-expanded"><div class="day-expanded-title">${labelRaw}</div>${inner}</div>`;
