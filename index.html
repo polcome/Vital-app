@@ -57,8 +57,8 @@
   .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px;}
   .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
   .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
-  .cal-day{height:132px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
-    display:flex;flex-direction:column;align-items:stretch;gap:3px;overflow:hidden;padding:5px 3px;}
+  .cal-day{height:90px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
+    display:flex;flex-direction:column;align-items:stretch;gap:2px;overflow:hidden;padding:4px 3px;}
   .cal-day.outside{opacity:.25;pointer-events:none;}
   .cal-day.past{background:var(--surface-2);}
   .cal-day.day-done{background:var(--day-done-bg);}
@@ -421,7 +421,7 @@ function buildDayCell(d, outside){
   const dStr = fmt(d);
   const todayStr = fmt(new Date());
   const acts = outside ? [] : activitatsDelDia(d);
-  const MAX_LINES = 3;
+  const MAX_LINES = 2;
   const visible = acts.slice(0, MAX_LINES);
   const linesHtml = visible.map(a=>{
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
