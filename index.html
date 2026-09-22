@@ -9,16 +9,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#F7F8F5; --surface:#FFFFFF; --surface-2:#F0F2EC; --border:#E3E7DF;
-    --text:#20241F; --text-muted:#767F73;
-    --gym:#5CAE82; --gym-bg:#DDF0E5; --gym-text:#28744C;
-    --classe:#5C9FCB; --classe-bg:#DEEBF7; --classe-text:#295E86;
-    --exterior:#9B7BC4; --exterior-bg:#ECE3F7; --exterior-text:#63458F;
+    --bg:#F6F8FA; --surface:#FFFFFF; --surface-2:#EEF2F6; --border:#E1E7ED;
+    --text:#1D2226; --text-muted:#75808A;
+    --gym:#3B6FD1; --gym-bg:#E1E9FA; --gym-text:#2A4F9E;
+    --classe:#2FA8C9; --classe-bg:#DDF2F7; --classe-text:#1F7A93;
+    --exterior:#6F6FD9; --exterior-bg:#E6E5FA; --exterior-text:#4A4AAE;
     --missed:#D9776A; --missed-bg:#FBE4E0;
     --amber:#DFA84E; --amber-bg:#FAEBD3;
     --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --radius:14px;
-    --shadow:0 1px 2px rgba(30,35,25,.05), 0 2px 8px rgba(30,35,25,.05);
+    --shadow:0 1px 2px rgba(20,30,40,.05), 0 2px 8px rgba(20,30,40,.05);
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;padding-bottom:74px;}
@@ -52,22 +52,23 @@
   .section-title{font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:18px 0 8px;font-weight:600;}
   .empty{color:var(--text-muted);font-size:13px;padding:22px 0;text-align:center;}
 
-  /* ---- Month view ---- */
+  /* ---- Vista Mes / Setmana (dies estàndard amb punts) ---- */
   .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
   .weekday-row div{text-align:center;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
   .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
-  .cal-day{min-height:58px;border-radius:11px;padding:6px 4px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;display:flex;flex-direction:column;gap:2px;}
+  .cal-day{height:54px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:border-color .15s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden;}
   .cal-day.outside{opacity:.25;pointer-events:none;}
   .cal-day.past{background:var(--surface-2);}
   .cal-day.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
-  .cal-day.expanded-sel{border-color:var(--gym);box-shadow:0 0 0 1px var(--gym) inset;}
-  .cal-day .dnum{font-family:var(--font-mono);font-size:12.5px;text-align:center;}
-  .cal-day .chip{font-size:8.5px;border-radius:5px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
-  .cal-day .chip.gym{background:var(--gym-bg);color:var(--gym-text);}
-  .cal-day .chip.classe{background:var(--classe-bg);color:var(--classe-text);}
-  .cal-day .chip.exterior{background:var(--exterior-bg);color:var(--exterior-text);}
-  .cal-day .chip.missed{opacity:.55;text-decoration:line-through;}
-  .cal-day .more{font-size:8px;color:var(--text-muted);text-align:center;}
+  .cal-day.expanded-sel{border-color:var(--gym);box-shadow:0 0 0 1px var(--gym) inset;background:var(--gym-bg);}
+  .cal-day .dnum{font-family:var(--font-mono);font-size:13px;}
+  .day-dots{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;max-width:34px;}
+  .day-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .day-dot.gym{background:var(--gym);}
+  .day-dot.classe{background:var(--classe);}
+  .day-dot.exterior{background:var(--exterior);}
+  .day-dot.missed{background:var(--missed);}
 
   .day-expanded{background:var(--surface);border:1px solid var(--gym);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
   .day-expanded-title{font-family:var(--font-display);font-size:14.5px;margin-bottom:10px;text-transform:capitalize;}
@@ -83,29 +84,6 @@
   .act-row .name.done{text-decoration:line-through;color:var(--text-muted);}
   .act-row .tag{font-size:10.5px;color:var(--text-muted);}
   .act-row .status{font-size:15px;}
-
-  /* ---- Week time-grid ---- */
-  .week-grid-wrap{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow);}
-  .week-daynames{display:grid;grid-template-columns:44px repeat(7,1fr);border-bottom:1px solid var(--border);}
-  .week-daynames .dh{text-align:center;padding:8px 2px;font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600;border-left:1px solid var(--border);}
-  .week-daynames .dh.today{color:var(--amber);}
-  .week-daynames .dh .n{font-family:var(--font-mono);font-size:13px;color:var(--text);display:block;margin-top:2px;}
-  .week-scroll{max-height:66vh;overflow-y:auto;position:relative;}
-  .week-body{display:grid;grid-template-columns:44px repeat(7,1fr);}
-  .week-hours{display:flex;flex-direction:column;}
-  .week-hours .h{height:60px;font-size:9.5px;color:var(--text-muted);text-align:right;padding-right:5px;position:relative;top:-6px;}
-  .week-col{position:relative;border-left:1px solid var(--border);background-image:repeating-linear-gradient(to bottom, transparent, transparent 59px, var(--border) 60px);}
-  .week-col.today{background-color:#FFFBF2;}
-  .week-block{position:absolute;left:2px;right:2px;border-radius:8px;padding:3px 6px;font-size:10px;overflow:hidden;cursor:pointer;border-left:3px solid;}
-  .week-block.gym{background:var(--gym-bg);color:var(--gym-text);border-color:var(--gym);}
-  .week-block.classe{background:var(--classe-bg);color:var(--classe-text);border-color:var(--classe);}
-  .week-block.exterior{background:var(--exterior-bg);color:var(--exterior-text);border-color:var(--exterior);}
-  .week-block.completat{opacity:.5;}
-  .week-block.missed{opacity:.55;}
-  .week-block .wb-time{font-family:var(--font-mono);font-weight:700;font-size:9.5px;}
-  .week-block .wb-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .now-line{position:absolute;left:0;right:0;height:2px;background:var(--missed);z-index:5;}
-  .now-line::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--missed);}
 
   /* ---- Modal ---- */
   .modal-overlay{position:fixed;inset:0;background:rgba(20,22,18,.4);z-index:200;display:none;align-items:flex-end;justify-content:center;}
@@ -183,8 +161,8 @@
 
 <header class="top">
   <div class="seg-toggle" id="mainViewToggle">
-    <button data-view="week" class="active">Setmana</button>
-    <button data-view="month">Mes</button>
+    <button data-view="month" class="active">Mes</button>
+    <button data-view="week">Setmana</button>
   </div>
   <button class="btn-primary" onclick="openActivityForm()">+ Nova activitat</button>
 </header>
@@ -199,14 +177,13 @@
       <button class="nav-btn" onclick="changePeriod(1)">›</button>
     </div>
 
-    <div id="calendarWeek">
-      <div class="week-grid-wrap">
-        <div class="week-daynames" id="weekDaynames"></div>
-        <div class="week-scroll"><div class="week-body" id="weekBody"></div></div>
-      </div>
+    <div id="calendarWeek" style="display:none;">
+      <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
+      <div id="weekRow" class="cal-week-row"></div>
+      <div id="weekExpandedPanel"></div>
     </div>
 
-    <div id="calendarMonth" style="display:none;">
+    <div id="calendarMonth">
       <div class="weekday-row"><div>Dl</div><div>Dt</div><div>Dc</div><div>Dj</div><div>Dv</div><div>Ds</div><div>Dg</div></div>
       <div id="monthGrid"></div>
     </div>
@@ -367,9 +344,8 @@ document.getElementById("modalOverlay").addEventListener("click", e=>{
 });
 
 /* ============ CALENDARI: estat de vista ============ */
-let calViewMode = "week";
+let calViewMode = "month";
 let calRefDate = new Date();
-let monthExpandedDate = null;
 
 document.getElementById("mainViewToggle").addEventListener("click", e=>{
   if(e.target.tagName!=="BUTTON") return;
@@ -391,7 +367,7 @@ function renderCalendarView(){
     const sun = new Date(mon); sun.setDate(mon.getDate()+6);
     const lbl = mon.toLocaleDateString('ca-ES',{day:'numeric',month:'short'}) + " – " + sun.toLocaleDateString('ca-ES',{day:'numeric',month:'short',year:'numeric'});
     document.getElementById("periodLabel").textContent = lbl;
-    renderWeekGrid();
+    renderWeekRow();
   } else {
     const lblRaw = calRefDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
     document.getElementById("periodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
@@ -399,74 +375,48 @@ function renderCalendarView(){
   }
 }
 
-/* ============ VISTA SETMANA (graella horària) ============ */
-const GRID_START_H = 6, GRID_END_H = 23;
-function renderWeekGrid(){
-  const mon = mondayOf(calRefDate);
-  const todayStr = fmt(new Date());
-
-  // capçalera dies
-  let headHtml = `<div></div>`;
-  const days = [];
-  for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); }
-  days.forEach(d=>{
-    const dStr = fmt(d);
-    headHtml += `<div class="dh ${dStr===todayStr?'today':''}">${d.toLocaleDateString('ca-ES',{weekday:'short'})}<span class="n">${d.getDate()}</span></div>`;
-  });
-  document.getElementById("weekDaynames").innerHTML = headHtml;
-
-  // cos: columna hores + 7 columnes dia
-  const totalMin = (GRID_END_H-GRID_START_H)*60;
-  let hoursHtml = "";
-  for(let h=GRID_START_H; h<GRID_END_H; h++){ hoursHtml += `<div class="h">${String(h).padStart(2,"0")}:00</div>`; }
-
-  let bodyHtml = `<div class="week-hours" style="height:${totalMin}px;">${hoursHtml}</div>`;
-  days.forEach(d=>{
-    const dStr = fmt(d);
-    const isToday = dStr===todayStr;
-    let colHtml = `<div class="week-col ${isToday?'today':''}" style="height:${totalMin}px;">`;
-    activitatsDelDia(d).forEach(a=>{
-      const range = effectiveRange(a);
-      if(!range) return;
-      const top = Math.max(0, range.start - GRID_START_H*60);
-      const height = Math.max(range.end - range.start, 22);
-      if(top > totalMin) return;
-      const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
-      const done = isCompletat(a.ID, dStr);
-      const missed = isPerduda(a.ID, dStr);
-      colHtml += `<div class="week-block ${info.cls} ${done?'completat':''} ${missed?'missed':''}" style="top:${top}px;height:${height}px;" onclick="openActivityAction('${a.ID}','${dStr}')">
-        <div class="wb-time">${a.HoraInici||''}</div>
-        <div class="wb-name">${done?'✓ ':''}${a.Nom||info.label}</div>
-      </div>`;
-    });
-    if(isToday){
-      const now = new Date();
-      const nowMin = now.getHours()*60+now.getMinutes();
-      if(nowMin>=GRID_START_H*60 && nowMin<=GRID_END_H*60){
-        colHtml += `<div class="now-line" style="top:${nowMin-GRID_START_H*60}px;"></div>`;
-      }
-    }
-    colHtml += `</div>`;
-    bodyHtml += colHtml;
-  });
-  document.getElementById("weekBody").innerHTML = bodyHtml;
-}
-
-/* ============ VISTA MES ============ */
+/* ============ CEL·LA DE DIA (compartida entre setmana i mes) ============ */
+let calExpandedDate = null;
 function diaStatusClass(dStr, todayStr){
   if(dStr===todayStr) return "today";
   return dStr < todayStr ? "past" : "future";
 }
-function toggleMonthDay(dStr){
-  monthExpandedDate = (monthExpandedDate===dStr) ? null : dStr;
-  renderMonthGrid();
+function toggleDayExpand(dStr){
+  calExpandedDate = (calExpandedDate===dStr) ? null : dStr;
+  renderCalendarView();
 }
+function buildDayCell(d, outside){
+  const dStr = fmt(d);
+  const todayStr = fmt(new Date());
+  const acts = outside ? [] : activitatsDelDia(d);
+  const dotsHtml = acts.slice(0,6).map(a=>{
+    const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
+    const missed = isPerduda(a.ID, dStr);
+    return `<span class="day-dot ${missed?'missed':info.cls}"></span>`;
+  }).join("");
+  const status = diaStatusClass(dStr, todayStr);
+  return `<div class="cal-day ${status} ${outside?'outside':''} ${dStr===calExpandedDate?'expanded-sel':''}"
+    onclick="${outside?'':`toggleDayExpand('${dStr}')`}">
+    <div class="dnum">${d.getDate()}</div>
+    <div class="day-dots">${dotsHtml}</div>
+  </div>`;
+}
+
+/* ============ VISTA SETMANA ============ */
+function renderWeekRow(){
+  const mon = mondayOf(calRefDate);
+  const days = []; for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); }
+  document.getElementById("weekRow").innerHTML = days.map(d=>buildDayCell(d, false)).join("");
+  const panel = document.getElementById("weekExpandedPanel");
+  panel.innerHTML = (calExpandedDate && days.some(d=>fmt(d)===calExpandedDate)) ? renderDayExpandedPanel(calExpandedDate) : "";
+}
+
+/* ============ VISTA MES ============ */
 function renderMonthGrid(){
   const year = calRefDate.getFullYear(), month = calRefDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay()+6)%7;
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const todayStr = fmt(new Date());
 
   let cells = [];
   for(let i=startOffset;i>0;i--){ const d=new Date(year,month,1-i); cells.push({date:d, outside:true}); }
@@ -476,35 +426,19 @@ function renderMonthGrid(){
   let html = "";
   for(let w=0; w<cells.length/7; w++){
     const weekCells = cells.slice(w*7, w*7+7);
-    html += `<div class="cal-week-row">`;
-    weekCells.forEach(c=>{
-      const dStr = fmt(c.date);
-      const acts = c.outside ? [] : activitatsDelDia(c.date);
-      const visible = acts.slice(0,3);
-      const chipsHtml = visible.map(a=>{
-        const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
-        const missed = isPerduda(a.ID, dStr);
-        return `<div class="chip ${info.cls} ${missed?'missed':''}">${a.HoraInici?a.HoraInici+' ':''}${a.Nom||info.label}</div>`;
-      }).join("");
-      const moreHtml = acts.length>3 ? `<div class="more">+${acts.length-3} més</div>` : "";
-      const status = diaStatusClass(dStr, todayStr);
-      html += `<div class="cal-day ${status} ${c.outside?'outside':''} ${dStr===monthExpandedDate?'expanded-sel':''}"
-        onclick="${c.outside?'':`toggleMonthDay('${dStr}')`}">
-        <div class="dnum">${c.date.getDate()}</div>
-        ${chipsHtml}${moreHtml}
-      </div>`;
-    });
-    html += `</div>`;
-    if(monthExpandedDate && weekCells.some(c=>fmt(c.date)===monthExpandedDate)){
-      html += renderDayExpandedPanel(monthExpandedDate);
+    html += `<div class="cal-week-row">` + weekCells.map(c=>buildDayCell(c.date, c.outside)).join("") + `</div>`;
+    if(calExpandedDate && weekCells.some(c=>fmt(c.date)===calExpandedDate)){
+      html += renderDayExpandedPanel(calExpandedDate);
     }
   }
   document.getElementById("monthGrid").innerHTML = html;
 }
+
+/* ============ PANELL DESPLEGAT D'UN DIA (agenda ordenada per hora) ============ */
 function renderDayExpandedPanel(dStr){
   const d = new Date(dStr+"T00:00:00");
   const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
-  const acts = activitatsDelDia(d);
+  const acts = activitatsDelDia(d); // ja ve ordenat per HoraInici
   const inner = acts.length ? acts.map(a=>{
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const done = isCompletat(a.ID, dStr);
