@@ -182,8 +182,9 @@
   nav.tabs button .ic{font-size:18px;}
   nav.tabs button.active{color:var(--gym-text);background:var(--gym-bg);}
 
-  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);padding:9px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:250;}
-  .toast.show{opacity:1;}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);padding:9px 16px;border-radius:20px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:250;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;pointer-events:auto;}
+  .toast-undo{text-decoration:underline;font-weight:700;margin-left:8px;cursor:pointer;}
 
   .fab-refresh{position:fixed;right:16px;bottom:76px;z-index:40;width:44px;height:44px;border-radius:50%;
     background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
@@ -306,8 +307,16 @@ async function apiPost(action, body={}){
 }
 function showToast(msg){
   const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
+  t.innerHTML = ""; t.textContent = msg; t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 1700);
+}
+let __undoFn = null;
+function showUndoToast(msg, undoFn){
+  const t = document.getElementById("toast");
+  __undoFn = undoFn;
+  t.innerHTML = `${msg} <span class="toast-undo" onclick="if(__undoFn){__undoFn();__undoFn=null;}document.getElementById('toast').classList.remove('show');">Desfer</span>`;
+  t.classList.add("show");
+  setTimeout(()=>{ t.classList.remove("show"); __undoFn=null; }, 4500);
 }
 
 /* ============ HELPERS DE DATA ============ */
@@ -328,6 +337,7 @@ function activitatsDelDia(d){
   const codi = diaCodi(d), dStr = fmt(d);
   return STATE.activitats.filter(a=>{
     if(String(a.Actiu).toUpperCase()!=="TRUE") return false;
+    if(isOmesa(a.ID, dStr)) return false; // eliminada només aquest dia: no es mostra enlloc
     if(a.DataPuntual){ return a.DataPuntual===dStr; }
     if(!a.DiesSetmana || a.DiesSetmana==="Diari") return true;
     return a.DiesSetmana.split(",").map(s=>s.trim()).includes(codi);
@@ -640,7 +650,7 @@ function openActivityAction(activitatId, dStr){
     ${statusHtml}
     <div class="form-actions">${editButtonsHtml}</div>
     <div class="form-actions" style="margin-top:8px;">${mainActionsHtml}</div>
-    ${(!done && !omesa) ? `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="ometreDiaClick('${a.ID}','${dStr}')">⏭️ Ometre només aquest dia${isRecurrent?' (no afecta els altres)':''}</button>` : ''}
+    ${(!done && !omesa) ? `<button class="btn-danger" style="width:100%;margin-top:8px;" onclick="ometreDiaClick('${a.ID}','${dStr}')">🗑 Eliminar només aquest dia${isRecurrent?' (no afecta els altres)':''}</button>` : ''}
     <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="eliminarActivitatClick('${a.ID}')">🗑 Eliminar tota la programació</button>
   `);
 }
@@ -741,11 +751,10 @@ async function ometreDiaClick(activitatId, dStr){
   closeModal();
   renderCalendarView();
   if(document.getElementById("page-stats").classList.contains("active")) renderStats();
-  showToast("Ometent aquest dia...");
   try{
     const r = await apiPost("marcarOmesa", {activitatId, data:dStr});
     if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
-    showToast("Dia omès — no comptarà com a no completada");
+    showUndoToast("Eliminada d'aquest dia", ()=>desferEstatDia(activitatId, dStr));
   }catch(err){
     if(backup) Object.assign(logEntry(activitatId,dStr), backup);
     else{ STATE.log = STATE.log.filter(l=>l.ID!=="tmp"); }
@@ -833,13 +842,19 @@ async function confirmarCompletat(activitatId, dStr){
 function openActivityForm(editId){
   const a = editId ? STATE.activitats.find(x=>String(x.ID)===String(editId)) : null;
   const tipus = a ? a.Tipus : "Gym";
-  const isRecurrent = a ? !a.DataPuntual : true;
+  // Nova activitat: per defecte "dia puntual" amb el dia que tinguis seleccionat al calendari.
+  // Editant: respecta si l'activitat original és periòdica o puntual.
+  const isRecurrent = a ? !a.DataPuntual : false;
+  const dataPuntualInicial = a ? (a.DataPuntual||'') : (calExpandedDate||'');
   const diesSel = a && a.DiesSetmana && a.DiesSetmana!=="Diari" ? a.DiesSetmana.split(",").map(s=>s.trim()) : [];
   const diari = !a || !a.DiesSetmana || a.DiesSetmana==="Diari";
 
   openModal(`
     <h3 class="modal-title">${editId?'Editar activitat':'Nova activitat'}</h3>
     <div class="form">
+      <label>Nom</label>
+      <input id="actNom" placeholder="Cames, Spinning, Running matí..." value="${a?String(a.Nom||'').replace(/"/g,'&quot;'):''}" autofocus>
+
       <label>Tipus</label>
       <div class="type-picker" id="typePicker">
         <button type="button" class="sel-gym ${tipus==='Gym'?'active':''}" onclick="selectTipus('Gym')">🏋️ Gym</button>
@@ -848,9 +863,6 @@ function openActivityForm(editId){
       </div>
       <input type="hidden" id="actTipus" value="${tipus}">
 
-      <label>Nom</label>
-      <input id="actNom" placeholder="Cames, Spinning, Running matí..." value="${a?String(a.Nom||'').replace(/"/g,'&quot;'):''}">
-
       <label>Recurrència</label>
       <div class="recur-toggle" id="recurToggle">
         <button type="button" class="${isRecurrent?'active':''}" onclick="selectRecur(true)">Periòdic</button>
@@ -858,7 +870,7 @@ function openActivityForm(editId){
       </div>
 
       <div id="recurrentFields" style="display:${isRecurrent?'block':'none'};">
-        <label>Dies de la setmana</label>
+        <label>Dies de la setmana (opcional)</label>
         <div class="day-chips" id="dayChips">
           ${["L","M","X","J","V","S","D"].map(c=>`<button type="button" data-dia="${c}" class="${diari?'':(diesSel.includes(c)?'active':'')}" onclick="toggleDiaChip(this)">${c}</button>`).join("")}
         </div>
@@ -866,16 +878,16 @@ function openActivityForm(editId){
       </div>
       <div id="puntualFields" style="display:${isRecurrent?'none':'block'};">
         <label>Data</label>
-        <input type="date" id="actDataPuntual" value="${a?a.DataPuntual||'':''}">
+        <input type="date" id="actDataPuntual" value="${dataPuntualInicial}">
       </div>
 
       <div class="form-grid2">
-        <div><label>Hora d'inici</label><input type="time" id="actHoraInici" value="${a?a.HoraInici||'':''}"></div>
-        <div><label id="horaFiLabel">Hora de fi</label><input type="time" id="actHoraFi" value="${a?a.HoraFi||'':''}"></div>
+        <div><label>Hora d'inici (opcional)</label><input type="time" id="actHoraInici" value="${a?a.HoraInici||'':''}"></div>
+        <div><label id="horaFiLabel">Hora de fi (opcional)</label><input type="time" id="actHoraFi" value="${a?a.HoraFi||'':''}"></div>
       </div>
 
       <div id="gymFields" style="display:none;">
-        <label>Durada estimada (min) — si no poses hora de fi</label>
+        <label>Durada estimada (min, opcional) — si no poses hora de fi</label>
         <input id="actDuradaMin" type="number" placeholder="60" value="${a?a.DuradaMin||'':''}">
         <label>Exercicis (opcional)</label>
         <textarea id="actExercicis" placeholder="Press banca 4x10 60kg&#10;Squat 3x8 80kg">${a?a.Exercicis||'':''}</textarea>
@@ -907,7 +919,6 @@ function selectTipus(t){
 function updateTypeFieldsVisibility(t){
   document.getElementById("gymFields").style.display = t==="Gym" ? "block":"none";
   document.getElementById("exteriorFields").style.display = t==="Exterior" ? "block":"none";
-  document.getElementById("horaFiLabel").textContent = t==="Gym" ? "Hora de fi (opcional)" : "Hora de fi";
 }
 function selectRecur(isRecur){
   document.querySelectorAll("#recurToggle button").forEach(b=>b.classList.remove("active"));
@@ -928,7 +939,6 @@ async function guardarActivitat(editId){
   const horaFi = document.getElementById("actHoraFi").value;
 
   if(!nom){ showToast("Escriu un nom"); return; }
-  if(!horaInici){ showToast("Indica l'hora d'inici"); return; }
   if(isRecur===false && !dataPuntual){ showToast("Indica la data"); return; }
 
   const body = {
@@ -1067,14 +1077,12 @@ function renderStats(){
     : statsRefDate.toLocaleDateString('ca-ES',{month:'long',year:'numeric'});
   document.getElementById("statsPeriodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
 
-  // Recopilar totes les ocurrències del període (les omeses no compten ni sumen ni resten)
-  let occAmbOmeses = [];
+  // Recopilar totes les ocurrències del període (les eliminades d'un dia concret ja no arriben aquí)
+  let occ = [];
   dies.forEach(d=>{
     const dStr = fmt(d);
-    activitatsDelDia(d).forEach(a=>{ occAmbOmeses.push({a, dStr}); });
+    activitatsDelDia(d).forEach(a=>{ occ.push({a, dStr}); });
   });
-  const omeses = occAmbOmeses.filter(o=>isOmesa(o.a.ID,o.dStr));
-  const occ = occAmbOmeses.filter(o=>!isOmesa(o.a.ID,o.dStr));
 
   const total = occ.length;
   const completades = occ.filter(o=>isCompletat(o.a.ID,o.dStr));
@@ -1109,13 +1117,13 @@ function renderStats(){
     </div>
     <div class="stat-grid cols3">
       <div class="stat-box"><div class="num" style="color:var(--missed);">${perdudes.length}</div><div class="lbl">No completades</div></div>
-      <div class="stat-box"><div class="num" style="color:var(--text-muted);">${omeses.length}</div><div class="lbl">Omeses (no compten)</div></div>
       <div class="stat-box"><div class="num">${avgDif}</div><div class="lbl">Dificultat mitjana</div></div>
+      <div class="stat-box"><div class="num">${avgSat}</div><div class="lbl">Satisfacció mitjana</div></div>
     </div>
     <div class="stat-grid cols3">
-      <div class="stat-box"><div class="num">${avgSat}</div><div class="lbl">Satisfacció mitjana</div></div>
       <div class="stat-box"><div class="num">${Math.round(totalMin/60*10)/10}h</div><div class="lbl">Temps entrenat</div></div>
       <div class="stat-box"><div class="num">${totalKm?totalKm.toFixed(1):'–'}</div><div class="lbl">Km (Exterior)</div></div>
+      <div class="stat-box"><div class="num">${perTipus["Gym"].fet}</div><div class="lbl">Sessions Gym</div></div>
     </div>
 
     <div class="section-title">Sessions per tipus</div>
