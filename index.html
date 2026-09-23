@@ -171,6 +171,12 @@
   .goal-bar{height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
   .goal-bar-fill{height:100%;background:var(--gym);border-radius:5px;}
 
+  .goal-strip{display:flex;gap:6px;overflow-x:auto;padding:4px 0 2px;-webkit-overflow-scrolling:touch;}
+  .goal-pill{flex-shrink:0;display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:var(--shadow);cursor:pointer;}
+  .goal-pill.done{border-color:var(--gym);}
+  .goal-pill .gp-bar{width:32px;height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;flex-shrink:0;}
+  .goal-pill .gp-fill{height:100%;border-radius:3px;}
+
   nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:30;}
   nav.tabs button{background:none;border:none;border-radius:12px;color:var(--text-muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 6px;flex:1;font-weight:600;transition:background .15s,color .15s;}
   nav.tabs button .ic{font-size:18px;}
@@ -193,13 +199,17 @@
     <button data-view="month" class="active">Mes</button>
     <button data-view="week">Setmana</button>
   </div>
-  <button class="btn-primary" onclick="openActivityForm()">+ Nova activitat</button>
+  <div style="display:flex;gap:6px;">
+    <button class="btn-icon" onclick="openActivitatsList()" title="Totes les activitats">📋</button>
+    <button class="btn-primary" onclick="openActivityForm()">+ Nova activitat</button>
+  </div>
 </header>
 
 <main>
 
   <!-- ===== PÀGINA: CALENDARI ===== -->
   <section class="page active" id="page-calendar">
+    <div id="calGoalsStrip"></div>
     <div class="period-nav">
       <button class="nav-btn" onclick="changePeriod(-1)">‹</button>
       <div class="period-label" id="periodLabel"></div>
@@ -265,9 +275,9 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzPBoyxKWUvSh_GZCH1jTvLx76NxDbkIkz6yXWVhYj5sed9RjR5CYT1wIkC5R8UplmV/exec";
 
 const TIPUS_INFO = {
-  "Gym":        {cls:"gym",      label:"Gym",        icon:"🏋️", color:"#5CAE82"},
-  "Classe Gym": {cls:"classe",   label:"Classe Gym",  icon:"🧘", color:"#5C9FCB"},
-  "Exterior":   {cls:"exterior", label:"Exterior",    icon:"🏃", color:"#9B7BC4"}
+  "Gym":        {cls:"gym",      label:"Gym",        icon:"🏋️", color:"#3B6FD1"},
+  "Classe Gym": {cls:"classe",   label:"Classe Gym",  icon:"🧘", color:"#E0954E"},
+  "Exterior":   {cls:"exterior", label:"Exterior",    icon:"🏃", color:"#9B4FD9"}
 };
 const DEFAULT_DURATION = {"Gym":60, "Classe Gym":60, "Exterior":45};
 
@@ -321,10 +331,27 @@ function activitatsDelDia(d){
     if(a.DataPuntual){ return a.DataPuntual===dStr; }
     if(!a.DiesSetmana || a.DiesSetmana==="Diari") return true;
     return a.DiesSetmana.split(",").map(s=>s.trim()).includes(codi);
-  }).sort((a,b)=>(parseTime(a.HoraInici)||0)-(parseTime(b.HoraInici)||0));
+  }).sort((a,b)=>{
+    const ea = getEffectiveActivity(a, dStr), eb = getEffectiveActivity(b, dStr);
+    return (parseTime(ea.HoraInici)||0)-(parseTime(eb.HoraInici)||0);
+  });
 }
 function logEntry(activitatId, dStr){
   return STATE.log.find(l=>String(l.ActivitatID)===String(activitatId) && l.Data===dStr);
+}
+/** Retorna l'activitat amb els valors d'aquell dia concret aplicats (si hi ha una excepció puntual). */
+function getEffectiveActivity(a, dStr){
+  const l = logEntry(a.ID, dStr);
+  if(!l) return a;
+  const eff = {...a};
+  if(l.NomOverride) eff.Nom = l.NomOverride;
+  if(l.HoraIniciOverride) eff.HoraInici = l.HoraIniciOverride;
+  if(l.HoraFiOverride) eff.HoraFi = l.HoraFiOverride;
+  return eff;
+}
+function hasExcepcio(activitatId, dStr){
+  const l = logEntry(activitatId, dStr);
+  return !!(l && (l.NomOverride || l.HoraIniciOverride || l.HoraFiOverride));
 }
 function isCompletat(activitatId, dStr){
   const l = logEntry(activitatId, dStr);
@@ -400,6 +427,7 @@ function changePeriod(delta){
   renderCalendarView();
 }
 function renderCalendarView(){
+  renderCalGoalsStrip();
   if(calViewMode==="week"){
     const mon = mondayOf(calRefDate);
     const sun = new Date(mon); sun.setDate(mon.getDate()+6);
@@ -411,6 +439,52 @@ function renderCalendarView(){
     document.getElementById("periodLabel").textContent = lblRaw.charAt(0).toUpperCase()+lblRaw.slice(1);
     renderMonthGrid();
   }
+}
+/** Franja compacta amb el progrés dels objectius setmanals, sempre de la setmana real actual. */
+function renderCalGoalsStrip(){
+  const cont = document.getElementById("calGoalsStrip");
+  if(!cont) return;
+  const goals = STATE.objectius.filter(o=>o.Periode==="Setmanal");
+  if(!goals.length){ cont.innerHTML = ""; return; }
+
+  const mon = mondayOf(new Date());
+  const dies = []; for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); dies.push(d); }
+  const perTipus = {};
+  dies.forEach(d=>{
+    const dStr = fmt(d);
+    activitatsDelDia(d).forEach(a=>{
+      if(isOmesa(a.ID,dStr)) return;
+      perTipus[a.Tipus] = perTipus[a.Tipus] || {fet:0, min:0, km:0};
+      if(isCompletat(a.ID,dStr)){
+        perTipus[a.Tipus].fet++;
+        const range = effectiveRange(a);
+        if(range) perTipus[a.Tipus].min += (range.end-range.start);
+        if(a.Kms) perTipus[a.Tipus].km += Number(a.Kms)||0;
+      }
+    });
+  });
+  const totalFet = Object.values(perTipus).reduce((s,t)=>s+t.fet,0);
+  const totalMin = Object.values(perTipus).reduce((s,t)=>s+t.min,0);
+  const totalKm = Object.values(perTipus).reduce((s,t)=>s+t.km,0);
+
+  const pills = goals.map(g=>{
+    let actual=0, unitat="";
+    const td = perTipus[g.Tipus];
+    if(g.Metrica==="Sessions"){ actual = g.Tipus==="Total" ? totalFet : (td?td.fet:0); }
+    else if(g.Metrica==="Minuts"){ actual = Math.round(g.Tipus==="Total" ? totalMin : (td?td.min:0)); unitat="min"; }
+    else if(g.Metrica==="Kms"){ actual = Math.round((g.Tipus==="Total" ? totalKm : (td?td.km:0))*10)/10; unitat="km"; }
+    const pct = Math.min(100, Math.round((actual/Number(g.Valor))*100)||0);
+    const done = actual >= Number(g.Valor);
+    const barColor = g.Tipus!=="Total" && TIPUS_INFO[g.Tipus] ? `var(--${TIPUS_INFO[g.Tipus].cls})` : "var(--text)";
+    return `<div class="goal-pill ${done?'done':''}" onclick="showAllPage('stats')">
+      <span>🎯 ${g.Tipus} · ${actual}/${g.Valor}${unitat?' '+unitat:''}</span>
+      <div class="gp-bar"><div class="gp-fill" style="width:${pct}%;background:${barColor};"></div></div>
+    </div>`;
+  }).join("");
+  cont.innerHTML = `<div class="goal-strip">${pills}</div>`;
+}
+function showAllPage(page){
+  document.querySelector(`.tab-btn[data-page="${page}"]`).click();
 }
 
 /* ============ CEL·LA DE DIA (compartida entre setmana i mes) ============ */
@@ -436,12 +510,13 @@ function buildDayCell(d, outside){
   const MAX_LINES = 2;
   const visible = acts.slice(0, MAX_LINES);
   const linesHtml = visible.map(a=>{
+    const eff = getEffectiveActivity(a, dStr);
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const missed = isPerduda(a.ID, dStr);
     const omesa = isOmesa(a.ID, dStr);
     return `<div class="day-line ${info.cls} ${missed?'missed':''} ${omesa?'omesa':''}">
-      <div class="dl-time">${a.HoraInici||'--:--'}</div>
-      <div class="dl-name">${a.Nom||info.label}</div>
+      <div class="dl-time">${eff.HoraInici||'--:--'}</div>
+      <div class="dl-name">${eff.Nom||info.label}</div>
     </div>`;
   }).join("");
   const moreHtml = acts.length>MAX_LINES ? `<div class="day-more">+${acts.length-MAX_LINES} més</div>` : "";
@@ -492,17 +567,20 @@ function renderDayExpandedPanel(dStr){
   const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
   const acts = activitatsDelDia(d); // ja ve ordenat per HoraInici
   const inner = acts.length ? acts.map(a=>{
+    const eff = getEffectiveActivity(a, dStr);
     const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
     const done = isCompletat(a.ID, dStr);
     const missed = isPerduda(a.ID, dStr);
     const omesa = isOmesa(a.ID, dStr);
+    const excepcio = hasExcepcio(a.ID, dStr);
     let tagExtra = "";
     if(omesa) tagExtra = ' · <span style="color:var(--text-muted);">omesa</span>';
     else if(missed) tagExtra = ' · <span style="color:var(--missed);">no completada</span>';
+    if(excepcio) tagExtra += ' · <span style="color:var(--amber);">✎ dia modificat</span>';
     return `<div class="act-row ${info.cls} ${done?'completat':''} ${omesa?'omesa':''}" onclick="openActivityAction('${a.ID}','${dStr}')">
-      <div class="time">${a.HoraInici||'--:--'}</div>
+      <div class="time">${eff.HoraInici||'--:--'}</div>
       <div class="body">
-        <div class="name ${done||omesa?'done':''}">${a.Nom||info.label}</div>
+        <div class="name ${done||omesa?'done':''}">${eff.Nom||info.label}</div>
         <div class="tag">${info.icon} ${info.label}${tagExtra}</div>
       </div>
       <div class="status">${done?'✅':(omesa?'⏭️':(missed?'⚠️':''))}<span class="chevron">›</span></div>
@@ -515,18 +593,21 @@ function renderDayExpandedPanel(dStr){
 function openActivityAction(activitatId, dStr){
   const a = STATE.activitats.find(x=>String(x.ID)===String(activitatId));
   if(!a) return;
+  const eff = getEffectiveActivity(a, dStr);
   const info = TIPUS_INFO[a.Tipus] || TIPUS_INFO["Gym"];
   const done = isCompletat(a.ID, dStr);
   const omesa = isOmesa(a.ID, dStr);
+  const excepcio = hasExcepcio(a.ID, dStr);
   const l = logEntry(a.ID, dStr);
   const d = new Date(dStr+"T00:00:00");
   const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
   const isRecurrent = !a.DataPuntual;
 
-  let detailsHtml = `<div class="row" style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:4px;"><span>${info.icon} ${info.label}</span><span class="mono">${a.HoraInici||''}${a.HoraFi?' - '+a.HoraFi:''}</span></div>`;
+  let detailsHtml = `<div class="row" style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:4px;"><span>${info.icon} ${info.label}</span><span class="mono">${eff.HoraInici||''}${eff.HoraFi?' - '+eff.HoraFi:''}</span></div>`;
   if(a.Exercicis) detailsHtml += `<div style="font-size:12.5px;white-space:pre-line;color:var(--text-muted);margin-top:6px;">${a.Exercicis}</div>`;
   if(a.Kms) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);">📏 ${a.Kms} km${a.Desnivell?' · ⛰️ '+a.Desnivell+'m':''}</div>`;
   if(a.Notes) detailsHtml += `<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">${a.Notes}</div>`;
+  if(excepcio) detailsHtml += `<div style="font-size:11.5px;color:var(--amber);margin-top:6px;">✎ Aquest dia té un canvi puntual (hora/nom diferent del normal)</div>`;
 
   let statusHtml = "";
   if(done && l){
@@ -541,29 +622,103 @@ function openActivityAction(activitatId, dStr){
   }
 
   let mainActionsHtml;
-  if(done){
-    mainActionsHtml = `<button class="btn-secondary" onclick="desferEstatDia('${a.ID}','${dStr}')">↺ Desfer</button>`;
-  } else if(omesa){
+  if(done || omesa){
     mainActionsHtml = `<button class="btn-secondary" onclick="desferEstatDia('${a.ID}','${dStr}')">↺ Desfer</button>`;
   } else {
     mainActionsHtml = `<button class="btn-primary" style="flex:1;justify-content:center;" onclick="openCompleteForm('${a.ID}','${dStr}')">✓ Completar</button>`;
   }
 
+  const editButtonsHtml = isRecurrent
+    ? `<button class="btn-secondary" onclick="openExceptionForm('${a.ID}','${dStr}')">✎ Només aquest dia</button>
+       <button class="btn-secondary" onclick="openActivityForm('${a.ID}')">✎ Tota la programació</button>`
+    : `<button class="btn-secondary" onclick="openActivityForm('${a.ID}')">✎ Editar</button>`;
+
   openModal(`
-    <h3 class="modal-title">${a.Nom || info.label}</h3>
+    <h3 class="modal-title">${eff.Nom || info.label}</h3>
     <p style="font-size:12px;color:var(--text-muted);text-transform:capitalize;margin:-8px 0 12px;">${labelRaw}</p>
     ${detailsHtml}
     ${statusHtml}
-    <div class="form-actions">
-      <button class="btn-secondary" onclick="openActivityForm('${a.ID}')">✎ Editar</button>
-      ${mainActionsHtml}
-    </div>
+    <div class="form-actions">${editButtonsHtml}</div>
+    <div class="form-actions" style="margin-top:8px;">${mainActionsHtml}</div>
     ${(!done && !omesa) ? `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="ometreDiaClick('${a.ID}','${dStr}')">⏭️ Ometre només aquest dia${isRecurrent?' (no afecta els altres)':''}</button>` : ''}
     <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="eliminarActivitatClick('${a.ID}')">🗑 Eliminar tota la programació</button>
   `);
 }
+
+/* ============ POPUP: EXCEPCIÓ D'UN SOL DIA (nom/hora diferents només aquell dia) ============ */
+function openExceptionForm(activitatId, dStr){
+  const a = STATE.activitats.find(x=>String(x.ID)===String(activitatId));
+  if(!a) return;
+  const eff = getEffectiveActivity(a, dStr);
+  const excepcio = hasExcepcio(a.ID, dStr);
+  const d = new Date(dStr+"T00:00:00");
+  const labelRaw = d.toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'});
+  openModal(`
+    <h3 class="modal-title">Canvi puntual d'aquest dia</h3>
+    <p style="font-size:12px;color:var(--text-muted);text-transform:capitalize;margin:-8px 0 12px;">${labelRaw} — no afecta la resta de la programació</p>
+    <div class="form">
+      <label>Nom</label>
+      <input id="excNom" value="${String(eff.Nom||'').replace(/"/g,'&quot;')}">
+      <div class="form-grid2">
+        <div><label>Hora d'inici</label><input type="time" id="excHoraInici" value="${eff.HoraInici||''}"></div>
+        <div><label>Hora de fi</label><input type="time" id="excHoraFi" value="${eff.HoraFi||''}"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="openActivityAction('${a.ID}','${dStr}')">Cancel·la</button>
+        <button class="btn-primary" style="flex:1;justify-content:center;" onclick="guardarExcepcio('${a.ID}','${dStr}')">Desar per aquest dia</button>
+      </div>
+      ${excepcio ? `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="treureExcepcio('${a.ID}','${dStr}')">↺ Treure el canvi puntual</button>` : ''}
+    </div>
+  `);
+}
+async function guardarExcepcio(activitatId, dStr){
+  const a = STATE.activitats.find(x=>String(x.ID)===String(activitatId));
+  const nom = document.getElementById("excNom").value.trim();
+  const horaInici = document.getElementById("excHoraInici").value;
+  const horaFi = document.getElementById("excHoraFi").value;
+  if(!horaInici){ showToast("Indica l'hora d'inici"); return; }
+  // Només es guarda com a "override" el que sigui diferent de la programació base
+  const nomOverride = (nom && nom!==a.Nom) ? nom : "";
+  const horaIniciOverride = (horaInici && horaInici!==a.HoraInici) ? horaInici : "";
+  const horaFiOverride = (horaFi && horaFi!==(a.HoraFi||"")) ? horaFi : "";
+
+  const backup = logEntry(activitatId, dStr) ? {...logEntry(activitatId, dStr)} : null;
+  let l = logEntry(activitatId, dStr);
+  if(!l){ l = {ID:"tmp", ActivitatID:activitatId, Data:dStr, Completat:false, Omesa:false}; STATE.log.push(l); }
+  l.NomOverride = nomOverride; l.HoraIniciOverride = horaIniciOverride; l.HoraFiOverride = horaFiOverride;
+  closeModal();
+  renderCalendarView();
+  showToast("Desant el canvi d'aquest dia...");
+  try{
+    const r = await apiPost("desarExcepcio", {activitatId, data:dStr, nomOverride, horaIniciOverride, horaFiOverride});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Canvi desat només per aquest dia ✅");
+  }catch(err){
+    if(backup){ Object.assign(logEntry(activitatId,dStr), backup); } else { STATE.log = STATE.log.filter(x=>x.ID!=="tmp"); }
+    renderCalendarView();
+    showToast("No s'ha pogut desar: "+err.message);
+  }
+}
+async function treureExcepcio(activitatId, dStr){
+  const backup = logEntry(activitatId, dStr) ? {...logEntry(activitatId, dStr)} : null;
+  const l = logEntry(activitatId, dStr);
+  if(l){ l.NomOverride=""; l.HoraIniciOverride=""; l.HoraFiOverride=""; }
+  closeModal();
+  renderCalendarView();
+  try{
+    const r = await apiPost("desarExcepcio", {activitatId, data:dStr, nomOverride:"", horaIniciOverride:"", horaFiOverride:""});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Torna a la programació normal");
+  }catch(err){
+    if(backup) Object.assign(logEntry(activitatId,dStr), backup);
+    renderCalendarView();
+    showToast("No s'ha pogut desar: "+err.message);
+  }
+}
+
 async function desferEstatDia(activitatId, dStr){
   const l = logEntry(activitatId, dStr);
+  const backup = l ? {...l} : null;
   if(l){ l.Completat = false; l.Omesa = false; }
   closeModal();
   renderCalendarView();
@@ -573,11 +728,14 @@ async function desferEstatDia(activitatId, dStr){
     if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
     showToast("Estat restablert");
   }catch(err){
-    showToast("Error: "+err.message);
+    if(backup) Object.assign(logEntry(activitatId,dStr), backup);
+    renderCalendarView();
+    showToast("No s'ha pogut desar: "+err.message);
   }
 }
 async function ometreDiaClick(activitatId, dStr){
   const existent = logEntry(activitatId, dStr);
+  const backup = existent ? {...existent} : null;
   if(existent){ existent.Completat=false; existent.Omesa=true; }
   else{ STATE.log.push({ID:"tmp",ActivitatID:activitatId, Data:dStr, Completat:false, Omesa:true, Notes:""}); }
   closeModal();
@@ -589,7 +747,10 @@ async function ometreDiaClick(activitatId, dStr){
     if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
     showToast("Dia omès — no comptarà com a no completada");
   }catch(err){
-    showToast("Error: "+err.message);
+    if(backup) Object.assign(logEntry(activitatId,dStr), backup);
+    else{ STATE.log = STATE.log.filter(l=>l.ID!=="tmp"); }
+    renderCalendarView();
+    showToast("No s'ha pogut desar: "+err.message);
   }
 }
 async function eliminarActivitatClick(id){
@@ -649,13 +810,23 @@ async function confirmarCompletat(activitatId, dStr){
     horaEntradaReal: heInput?heInput.value:"", horaSortidaReal: hsInput?hsInput.value:""
   };
   const existent = logEntry(activitatId, dStr);
+  const backup = existent ? {...existent} : null;
   if(existent){ Object.assign(existent, {Completat:true, Dificultat:dificultat, Satisfaccio:satisfaccio, Notes:nota, HoraEntradaReal:body.horaEntradaReal, HoraSortidaReal:body.horaSortidaReal}); }
   else { STATE.log.push({ID:"tmp",ActivitatID:activitatId, Data:dStr, Completat:true, Dificultat:dificultat, Satisfaccio:satisfaccio, Notes:nota, HoraEntradaReal:body.horaEntradaReal, HoraSortidaReal:body.horaSortidaReal}); }
   closeModal();
   renderCalendarView();
-  showToast("Activitat completada 🎉");
-  await apiPost("marcarCompletat", body);
-  if(document.getElementById("page-stats").classList.contains("active")) renderStats();
+  showToast("Desant...");
+  try{
+    const r = await apiPost("marcarCompletat", body);
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Activitat completada 🎉");
+    if(document.getElementById("page-stats").classList.contains("active")) renderStats();
+  }catch(err){
+    if(backup){ Object.assign(logEntry(activitatId,dStr), backup); }
+    else{ STATE.log = STATE.log.filter(l=>l.ID!=="tmp"); }
+    renderCalendarView();
+    showToast("No s'ha pogut desar: "+err.message);
+  }
 }
 
 /* ============ POPUP: CREAR / EDITAR ACTIVITAT ============ */
@@ -773,18 +944,69 @@ async function guardarActivitat(editId){
   if(editId){
     body.id = editId;
     const idx = STATE.activitats.findIndex(a=>String(a.ID)===String(editId));
+    const backup = idx>-1 ? {...STATE.activitats[idx]} : null;
     if(idx>-1) STATE.activitats[idx] = {...STATE.activitats[idx], Tipus:tipus, Nom:nom, DiesSetmana:diesSetmana, DataPuntual:dataPuntual, HoraInici:horaInici, HoraFi:horaFi, DuradaMin:body.duradaMin, Exercicis:body.exercicis, Kms:body.kms, Desnivell:body.desnivell, Notes:body.notes};
     renderCalendarView();
-    showToast("Activitat actualitzada");
-    await apiPost("editarActivitat", body);
+    showToast("Desant...");
+    try{
+      const r = await apiPost("editarActivitat", body);
+      if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+      showToast("Activitat actualitzada");
+    }catch(err){
+      if(backup && idx>-1) STATE.activitats[idx] = backup;
+      renderCalendarView();
+      showToast("No s'ha pogut desar: "+err.message);
+    }
   } else {
     const tempId = "tmp_"+Date.now();
     STATE.activitats.push({ID:tempId, Tipus:tipus, Nom:nom, DiesSetmana:diesSetmana, DataPuntual:dataPuntual, HoraInici:horaInici, HoraFi:horaFi, DuradaMin:body.duradaMin, Exercicis:body.exercicis, Kms:body.kms, Desnivell:body.desnivell, Notes:body.notes, Actiu:true});
     renderCalendarView();
-    showToast("Activitat creada");
-    const r = await apiPost("afegirActivitat", body);
-    if(r && r.id){ const it=STATE.activitats.find(a=>a.ID===tempId); if(it) it.ID=r.id; }
+    showToast("Desant...");
+    try{
+      const r = await apiPost("afegirActivitat", body);
+      if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+      const it=STATE.activitats.find(a=>a.ID===tempId); if(it && r.id) it.ID=r.id;
+      showToast("Activitat creada");
+    }catch(err){
+      STATE.activitats = STATE.activitats.filter(a=>a.ID!==tempId);
+      renderCalendarView();
+      showToast("No s'ha pogut crear: "+err.message);
+    }
   }
+}
+
+/* ============ LLISTAT DE TOTES LES ACTIVITATS ============ */
+function openActivitatsList(){
+  renderActivitatsList();
+}
+function renderActivitatsList(){
+  const actives = STATE.activitats.filter(a=>String(a.Actiu).toUpperCase()==="TRUE");
+  const perTipus = {};
+  actives.forEach(a=>{ (perTipus[a.Tipus]=perTipus[a.Tipus]||[]).push(a); });
+  const tipusKeys = Object.keys(TIPUS_INFO).filter(t=>perTipus[t] && perTipus[t].length);
+
+  const inner = tipusKeys.length ? tipusKeys.map(t=>{
+    const info = TIPUS_INFO[t];
+    const rows = perTipus[t].map(a=>{
+      const quan = a.DataPuntual ? `Puntual · ${a.DataPuntual}` : (!a.DiesSetmana||a.DiesSetmana==="Diari" ? "Diari" : `Dies: ${a.DiesSetmana}`);
+      return `<div class="act-row ${info.cls}" onclick="closeModal();openActivityForm('${a.ID}')">
+        <div class="time">${a.HoraInici||'--:--'}</div>
+        <div class="body">
+          <div class="name">${a.Nom||info.label}</div>
+          <div class="tag">${quan}${a.HoraFi?' · fins '+a.HoraFi:''}</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>`;
+    }).join("");
+    return `<div class="section-title" style="color:var(--${info.cls});">${info.icon} ${info.label}</div>${rows}`;
+  }).join("") : `<div class="empty">Encara no tens cap activitat creada.</div>`;
+
+  openModal(`
+    <h3 class="modal-title">Totes les activitats</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:-8px 0 12px;">Toca'n una per editar-la o eliminar-la</p>
+    ${inner}
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:10px;" onclick="closeModal();openActivityForm()">+ Nova activitat</button>
+  `);
 }
 
 /* ============ ESTADÍSTIQUES ============ */
@@ -902,6 +1124,9 @@ function renderStats(){
     <div class="section-title">Compliment del període</div>
     <div class="chart-wrap"><canvas id="chartCompliment"></canvas></div>
 
+    <div class="section-title">Tendència (últimes ${statsViewMode==="week"?"8 setmanes":"6 mesos"})</div>
+    <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
+
     <div class="section-title">Objectius d'aquest ${statsViewMode==="week"?"setmana":"mes"}</div>
     <div id="goalsProgress"></div>
   `;
@@ -920,9 +1145,45 @@ function renderStats(){
     return Math.round((fetes/dOcc.length)*100);
   });
   drawChart("chartCompliment","line", dies.map(d=>d.toLocaleDateString('ca-ES',{day:'numeric',month:statsViewMode==='month'?undefined:'numeric'})),
-    [{label:"% compliment", data:complimentPerDia, borderColor:"#5CAE82", backgroundColor:"rgba(92,174,130,.15)", fill:true, tension:.3}]);
+    [{label:"% compliment", data:complimentPerDia, borderColor:"#3B6FD1", backgroundColor:"rgba(59,111,209,.15)", fill:true, tension:.3}]);
+
+  const trend = computeTrendData();
+  drawChart("chartTrend","line", trend.labels,
+    [{label:"% compliment", data:trend.data, borderColor:"#9B4FD9", backgroundColor:"rgba(155,79,217,.12)", fill:true, tension:.3, spanGaps:true}]);
 
   renderGoalsProgress(perTipus, totalMin, totalKm);
+}
+/** Calcula el % de compliment de cada un dels últims N períodes (setmanes o mesos), sempre respecte avui. */
+function computeTrendData(){
+  const nPeriods = statsViewMode==="week" ? 8 : 6;
+  const labels = [], data = [];
+  for(let i=nPeriods-1; i>=0; i--){
+    let periodDies = [], label;
+    if(statsViewMode==="week"){
+      const ref = new Date(); ref.setDate(ref.getDate() - i*7);
+      const mon = mondayOf(ref);
+      for(let j=0;j<7;j++){ const d=new Date(mon); d.setDate(mon.getDate()+j); periodDies.push(d); }
+      label = mon.toLocaleDateString('ca-ES',{day:'numeric',month:'numeric'});
+    } else {
+      const ref = new Date(); ref.setDate(1); ref.setMonth(ref.getMonth()-i);
+      const year=ref.getFullYear(), month=ref.getMonth();
+      const daysInMonth = new Date(year, month+1, 0).getDate();
+      for(let day=1; day<=daysInMonth; day++){ periodDies.push(new Date(year,month,day)); }
+      const lbl = ref.toLocaleDateString('ca-ES',{month:'short'});
+      label = lbl.charAt(0).toUpperCase()+lbl.slice(1);
+    }
+    let t=0, f=0;
+    periodDies.forEach(d=>{
+      const dStr = fmt(d);
+      activitatsDelDia(d).forEach(a=>{
+        if(isOmesa(a.ID,dStr)) return;
+        t++; if(isCompletat(a.ID,dStr)) f++;
+      });
+    });
+    labels.push(label);
+    data.push(t ? Math.round((f/t)*100) : null);
+  }
+  return {labels, data};
 }
 function renderGoalsProgress(perTipus, totalMin, totalKm){
   const periode = statsViewMode==="week" ? "Setmanal" : "Mensual";
@@ -979,17 +1240,36 @@ async function afegirObjectiuClick(){
   const metrica = document.getElementById("objMetrica").value;
   const valor = document.getElementById("objValor").value;
   if(!valor){ showToast("Indica un valor"); return; }
-  STATE.objectius.push({ID:"tmp_"+Date.now(), Periode:periode, Tipus:tipus, Metrica:metrica, Valor:valor});
+  const tempId = "tmp_"+Date.now();
+  STATE.objectius.push({ID:tempId, Periode:periode, Tipus:tipus, Metrica:metrica, Valor:valor});
   renderObjectiusList();
-  const r = await apiPost("afegirObjectiu", {periode, tipus, metrica, valor});
-  if(r && r.id){ const last=STATE.objectius[STATE.objectius.length-1]; last.ID=r.id; }
-  showToast("Objectiu desat");
+  renderCalGoalsStrip();
+  showToast("Desant...");
+  try{
+    const r = await apiPost("afegirObjectiu", {periode, tipus, metrica, valor});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    const it = STATE.objectius.find(g=>g.ID===tempId); if(it && r.id) it.ID = r.id;
+    showToast("Objectiu desat");
+  }catch(err){
+    STATE.objectius = STATE.objectius.filter(g=>g.ID!==tempId);
+    renderObjectiusList(); renderCalGoalsStrip();
+    showToast("No s'ha pogut desar: "+err.message);
+  }
 }
 async function eliminarObjectiuClick(id){
+  const backup = STATE.objectius.find(g=>String(g.ID)===String(id));
   STATE.objectius = STATE.objectius.filter(g=>String(g.ID)!==String(id));
   renderObjectiusList();
-  await apiPost("eliminarObjectiu", {id});
-  showToast("Objectiu eliminat");
+  renderCalGoalsStrip();
+  try{
+    const r = await apiPost("eliminarObjectiu", {id});
+    if(!r || !r.ok) throw new Error(r&&r.error?r.error:"error desconegut");
+    showToast("Objectiu eliminat");
+  }catch(err){
+    if(backup) STATE.objectius.push(backup);
+    renderObjectiusList(); renderCalGoalsStrip();
+    showToast("No s'ha pogut eliminar: "+err.message);
+  }
 }
 
 /* ============ GEST DE LLISCAR (swipe) ENTRE PERÍODES ============ */
